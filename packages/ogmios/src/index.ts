@@ -1,2 +1,2 @@
 export * from './ogmiosTxSubmitProvider';
-export { createConnectionObject } from '@cardano-ogmios/client';
+export * as Ogmios from '@cardano-ogmios/client';

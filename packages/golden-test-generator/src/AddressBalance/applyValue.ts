@@ -10,7 +10,7 @@ const throwIfNegative = (value: bigint | number): void => {
 
 // eslint-disable-next-line sonarjs/cognitive-complexity
 export const applyValue = (balance: Schema.Value, value: Schema.Value, spending = false): Schema.Value => {
-  const coins = balance.coins + (spending ? -Math.abs(value.coins) : value.coins);
+  const coins = balance.coins + (spending ? -BigIntMath.abs(value.coins) : value.coins);
   throwIfNegative(coins);
   const balanceToApply: Schema.Value = { coins };
   if (balance.assets !== undefined || value.assets !== undefined) {
