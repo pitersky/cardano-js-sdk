@@ -40,12 +40,12 @@ describe('SingleAddressWallet/voting_metadata', () => {
 
   test('can submit tx with voting metadata and then query it', async () => {
     const { pubKey } = KeyManagement.util.generateVotingKeyPair();
-    const { txInternals, votingAuxData } = await wallet.initializeVotingRegistrationTx({
+    const { txInternals, auxiliaryData } = await wallet.initializeVotingRegistrationTx({
       networkId: Cardano.NetworkId.testnet,
       votingPublicKey: pubKey,
       nonce: 1234567
     });
-    const outgoingTx = await wallet.finalizeTx(txInternals, votingAuxData);
+    const outgoingTx = await wallet.finalizeTx(txInternals, auxiliaryData);
     await wallet.submitTx(outgoingTx);
     const loadedTx = await firstValueFrom(
       wallet.transactions.history$.pipe(
@@ -53,6 +53,6 @@ describe('SingleAddressWallet/voting_metadata', () => {
         filter(isNotNil)
       )
     );
-    expect(loadedTx.auxiliaryData).toEqual(votingAuxData);
+    expect(loadedTx.auxiliaryData).toEqual(auxiliaryData);
   });
 });

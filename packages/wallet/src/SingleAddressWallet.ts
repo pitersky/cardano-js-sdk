@@ -11,7 +11,9 @@ import {
   StakePoolProvider,
   TxSubmitProvider,
   UtxoProvider,
-  coreToCsl
+  WalletProvider,
+  coreToCsl,
+  CSL,
 } from '@cardano-sdk/core';
 import { Assets, InitializeTxProps, InitializeTxResult, ObservableWallet, SignDataProps, SyncStatus } from './types';
 import {
@@ -78,8 +80,6 @@ export interface SingleAddressWalletProps {
 
 export interface VotingAuxDataProps {
   votingPublicKey?: Cardano.Bip32PublicKey;
-  publicStakeKey: CSL.PublicKey;
-  rewardAccount: Cardano.RewardAccount;
   networkId: Cardano.NetworkId;
   nonce: number;
 }
@@ -286,42 +286,8 @@ export class SingleAddressWallet implements ObservableWallet {
     return this.name;
   }
 
-  // TODO - maybe we can move this to keyAgent?
-  #constructVotingAuxData(props: VotingAuxDataProps): Cardano.AuxiliaryData {
-    const publicStakeKey = await this.deriveCslPublicKey(keyManagementUtil.STAKE_KEY_DERIVATION_PATH);
-    const stakeKeyCredential = CSL.StakeCredential.from_keyhash(publicStakeKey.hash());
-    const rewardAccount = CSL.RewardAddress.new(props.networkId, stakeKeyCredential).to_address();
-
-    const votingData = [
-      keyManagementUtil.VotingLabels.DATA,
-      new Map([
-        [1n, props.votingPublicKey],
-        [2n, props.publicStakeKey],
-        [3n, props.rewardAccount],
-        [4n, props.nonce],
-      ])
-    ];
-
-    const votingSignature = [
-      keyManagementUtil.VotingLabels.SIG,
-      new Map([[1n, "abc"]]), // TODO
-    ];
-
-    const votingAuxData = {
-      body: {
-        blob: [
-          new Map([
-            votingData,
-            votingSignature
-          ])
-        ]
-      }
-    };
-    return votingAuxData;
-  }
-
-  async initializeVotingRegistrationTx(props: InitializeVotingTxProps): Promise<InitializeTxResult> {
-    const votingAuxData = constructVotingAuxData({
+  async initializeVotingRegistrationTx(props: InitializeVotingTxProps): Promise<InitializeVotingTxResult> {
+    const auxiliaryData = await this.#constructVotingAuxData({
       votingPublicKey: props.votingPublicKey,
       networkId: props.networkId,
       nonce: props.nonce,
@@ -334,7 +300,7 @@ export class SingleAddressWallet implements ObservableWallet {
     }]);
     const { constraints, utxo, implicitCoin, validityInterval, changeAddress } = await this.#prepareTx({
       outputs,
-      auxiliaryData: votingAuxData
+      auxiliaryData
     });
     const { selection: inputSelection } = await this.#inputSelector.select({
       constraints,
@@ -343,13 +309,13 @@ export class SingleAddressWallet implements ObservableWallet {
       utxo: new Set(utxo)
     });
     const { body, hash } = await createTransactionInternals({
-      auxiliaryData: votingAuxData,
+      auxiliaryData,
       changeAddress,
       inputSelection,
       validityInterval,
     });
     const txInternals = { body, hash, inputSelection }
-    return { txInternals, votingAuxData };
+    return { txInternals, auxiliaryData };
   }
 
   async initializeTx(props: InitializeTxProps): Promise<InitializeTxResult> {
@@ -459,5 +425,39 @@ export class SingleAddressWallet implements ObservableWallet {
         })
       )
     );
+  }
+
+  // TODO - maybe we can move this to keyAgent? + cleanup
+  async #constructVotingAuxData(props: VotingAuxDataProps): Promise<Cardano.AuxiliaryData> {
+    // @ts-ignore
+    const publicStakeKey = await this.keyAgent.derivePublicKey(keyManagementUtil.STAKE_KEY_DERIVATION_PATH);
+    const stakeKeyCredential = CSL.StakeCredential.from_keyhash(publicStakeKey.hash());
+    const rewardAccount = CSL.RewardAddress.new(props.networkId, stakeKeyCredential).to_address();
+
+    const votingData = [
+      // keyManagementUtil.VotingLabels.DATA,
+      new Map([
+        [1n, props.votingPublicKey],
+        [2n, publicStakeKey],
+        [3n, rewardAccount],
+        [4n, props.nonce],
+      ])
+    ];
+
+    const votingSignature = [
+      // keyManagementUtil.VotingLabels.SIG,
+      new Map([[1n, "abc"]]), // TODO
+    ];
+
+    const votingAuxData = new Map([
+      [BigInt(keyManagementUtil.VotingLabels.DATA), votingData],
+      [BigInt(keyManagementUtil.VotingLabels.SIG), votingSignature],
+    ]);
+    return {
+      body: {
+
+        blob: votingAuxData
+      }
+    };
   }
 }

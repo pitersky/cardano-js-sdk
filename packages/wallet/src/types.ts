@@ -39,7 +39,7 @@ export type InitializeTxResult = TxInternals & { inputSelection: SelectionSkelet
 
 export type InitializeVotingTxResult = {
   txInternals: InitializeTxResult,
-  votingAuxData: Cardano.AuxiliaryData,
+  auxiliaryData: Cardano.AuxiliaryData,
 };
 
 export type SignDataProps = Omit<Cip30SignDataRequest, 'keyAgent'>;

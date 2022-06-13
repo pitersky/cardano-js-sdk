@@ -12,7 +12,7 @@ export enum Cip1852PathLevelIndexes {
   INDEX = 4
 }
 
-export enum VotingLabels = {
+export enum VotingLabels {
   DATA = 61284,
   SIG = 61285,
 };
