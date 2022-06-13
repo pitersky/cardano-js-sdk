@@ -156,3 +156,8 @@ export interface KeyAgent {
 export type AsyncKeyAgent = Pick<KeyAgent, 'deriveAddress' | 'signBlob' | 'signTransaction'> & {
   knownAddresses$: Observable<GroupedAddress[]>;
 } & Shutdown;
+
+export interface VotingKeyPair {
+  rootPrvKey: Cardano.Bip32PrivateKey;
+  rootPubkey: Cardano.Bip32PublicKey;
+};

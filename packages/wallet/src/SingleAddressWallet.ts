@@ -76,6 +76,20 @@ export interface SingleAddressWalletProps {
   readonly retryBackoffConfig?: RetryBackoffConfig;
 }
 
+export interface VotingAuxDataProps {
+  votingPublicKey?: Cardano.Bip32PublicKey;
+  publicStakeKey: CSL.PublicKey;
+  rewardAccount: Cardano.RewardAccount;
+  networkId: Cardano.NetworkId;
+  nonce: number;
+}
+
+export interface InitializeVotingTxProps {
+  networkId: Cardano.NetworkId;
+  votingPublicKey: Cardano.Bip32PublicKey,
+  nonce: number,
+}
+
 export interface SingleAddressWalletDependencies {
   readonly keyAgent: AsyncKeyAgent;
   readonly txSubmitProvider: TxSubmitProvider;
@@ -270,6 +284,72 @@ export class SingleAddressWallet implements ObservableWallet {
 
   async getName(): Promise<string> {
     return this.name;
+  }
+
+  // TODO - maybe we can move this to keyAgent?
+  #constructVotingAuxData(props: VotingAuxDataProps): Cardano.AuxiliaryData {
+    const publicStakeKey = await this.deriveCslPublicKey(keyManagementUtil.STAKE_KEY_DERIVATION_PATH);
+    const stakeKeyCredential = CSL.StakeCredential.from_keyhash(publicStakeKey.hash());
+    const rewardAccount = CSL.RewardAddress.new(props.networkId, stakeKeyCredential).to_address();
+
+    const votingData = [
+      keyManagementUtil.VotingLabels.DATA,
+      new Map([
+        [1n, props.votingPublicKey],
+        [2n, props.publicStakeKey],
+        [3n, props.rewardAccount],
+        [4n, props.nonce],
+      ])
+    ];
+
+    const votingSignature = [
+      keyManagementUtil.VotingLabels.SIG,
+      new Map([[1n, "abc"]]), // TODO
+    ];
+
+    const votingAuxData = {
+      body: {
+        blob: [
+          new Map([
+            votingData,
+            votingSignature
+          ])
+        ]
+      }
+    };
+    return votingAuxData;
+  }
+
+  async initializeVotingRegistrationTx(props: InitializeVotingTxProps): Promise<InitializeTxResult> {
+    const votingAuxData = constructVotingAuxData({
+      votingPublicKey: props.votingPublicKey,
+      networkId: props.networkId,
+      nonce: props.nonce,
+    });
+    const ownAddress = (await firstValueFrom(this.addresses$))[0].address;
+    // Set min output amount to perform voting registration transaction. Coins will be sent to wallet (owner) address
+    const outputs = new Set([{
+      address: ownAddress,
+      value: { coins: 1_000_000n }
+    }]);
+    const { constraints, utxo, implicitCoin, validityInterval, changeAddress } = await this.#prepareTx({
+      outputs,
+      auxiliaryData: votingAuxData
+    });
+    const { selection: inputSelection } = await this.#inputSelector.select({
+      constraints,
+      implicitCoin,
+      outputs: props.outputs || new Set(),
+      utxo: new Set(utxo)
+    });
+    const { body, hash } = await createTransactionInternals({
+      auxiliaryData: votingAuxData,
+      changeAddress,
+      inputSelection,
+      validityInterval,
+    });
+    const txInternals = { body, hash, inputSelection }
+    return { txInternals, votingAuxData };
   }
 
   async initializeTx(props: InitializeTxProps): Promise<InitializeTxResult> {

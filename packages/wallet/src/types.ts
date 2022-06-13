@@ -37,6 +37,11 @@ export interface InitializeTxPropsValidationResult {
 
 export type InitializeTxResult = TxInternals & { inputSelection: SelectionSkeleton };
 
+export type InitializeVotingTxResult = {
+  txInternals: InitializeTxResult,
+  votingAuxData: Cardano.AuxiliaryData,
+};
+
 export type SignDataProps = Omit<Cip30SignDataRequest, 'keyAgent'>;
 
 export interface SyncStatus extends Shutdown {
