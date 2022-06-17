@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { AddressType, AsyncKeyAgent, GroupedAddress, util as keyManagementUtil } from './KeyManagement';
 import {
   AssetProvider,
@@ -13,7 +14,7 @@ import {
   UtxoProvider,
   WalletProvider,
   coreToCsl,
-  CSL,
+  CSL
 } from '@cardano-sdk/core';
 import { Assets, InitializeTxProps, InitializeTxResult, ObservableWallet, SignDataProps, SyncStatus } from './types';
 import {
@@ -82,6 +83,7 @@ export interface VotingAuxDataProps {
   votingPublicKey?: Cardano.Bip32PublicKey;
   networkId: Cardano.NetworkId;
   nonce: number;
+  rewardAccount: Cardano.RewardAccount;
 }
 
 export interface InitializeVotingTxProps {
@@ -287,12 +289,14 @@ export class SingleAddressWallet implements ObservableWallet {
   }
 
   async initializeVotingRegistrationTx(props: InitializeVotingTxProps): Promise<InitializeVotingTxResult> {
-    const auxiliaryData = await this.#constructVotingAuxData({
+    const ownAddress = (await firstValueFrom(this.addresses$))[0].address;
+    const rewardAccount = (await firstValueFrom(this.addresses$))[0].rewardAccount;
+    const auxiliaryData = await this.#prepareVotingAuxData({
       votingPublicKey: props.votingPublicKey,
       networkId: props.networkId,
       nonce: props.nonce,
+      rewardAccount,
     });
-    const ownAddress = (await firstValueFrom(this.addresses$))[0].address;
     // Set min output amount to perform voting registration transaction. Coins will be sent to wallet (owner) address
     const outputs = new Set([{
       address: ownAddress,
@@ -302,10 +306,11 @@ export class SingleAddressWallet implements ObservableWallet {
       outputs,
       auxiliaryData
     });
+
     const { selection: inputSelection } = await this.#inputSelector.select({
       constraints,
       implicitCoin,
-      outputs: props.outputs || new Set(),
+      outputs,
       utxo: new Set(utxo)
     });
     const { body, hash } = await createTransactionInternals({
@@ -428,26 +433,24 @@ export class SingleAddressWallet implements ObservableWallet {
   }
 
   // TODO - maybe we can move this to keyAgent? + cleanup
-  async #constructVotingAuxData(props: VotingAuxDataProps): Promise<Cardano.AuxiliaryData> {
-    // @ts-ignore
+  async #prepareVotingAuxData(props: VotingAuxDataProps): Promise<Cardano.AuxiliaryData> {
     const publicStakeKey = await this.keyAgent.derivePublicKey(keyManagementUtil.STAKE_KEY_DERIVATION_PATH);
-    const stakeKeyCredential = CSL.StakeCredential.from_keyhash(publicStakeKey.hash());
-    const rewardAccount = CSL.RewardAddress.new(props.networkId, stakeKeyCredential).to_address();
-
-    const votingData = [
-      // keyManagementUtil.VotingLabels.DATA,
-      new Map([
-        [1n, props.votingPublicKey],
-        [2n, publicStakeKey],
-        [3n, rewardAccount],
-        [4n, props.nonce],
-      ])
-    ];
-
-    const votingSignature = [
-      // keyManagementUtil.VotingLabels.SIG,
-      new Map([[1n, "abc"]]), // TODO
-    ];
+    const rewardAccountKeyHash = Buffer.from(
+      CSL.RewardAddress.from_address(CSL.Address.from_bech32(props.rewardAccount.toString()))!
+        .payment_cred()!
+        .to_keyhash()!
+        .to_bytes()
+    ).toString('hex')
+    const rewardAccountKeyHashBytes = Buffer.from(rewardAccountKeyHash, 'hex');
+    const publicStakeKeyBytes = Buffer.from(publicStakeKey, 'hex');
+    const votingData = new Map([
+      // [1n, props.votingPublicKey],
+      [1n, 'votingkey'],
+      [2n, publicStakeKeyBytes],
+      [3n, rewardAccountKeyHashBytes],
+      [4n, BigInt(props.nonce)]
+    ])
+    const votingSignature = new Map([[1n, "abc"]]);
 
     const votingAuxData = new Map([
       [BigInt(keyManagementUtil.VotingLabels.DATA), votingData],
@@ -455,7 +458,6 @@ export class SingleAddressWallet implements ObservableWallet {
     ]);
     return {
       body: {
-
         blob: votingAuxData
       }
     };

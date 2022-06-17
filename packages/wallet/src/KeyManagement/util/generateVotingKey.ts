@@ -14,7 +14,6 @@ export const generateVotingKeyPair = (): VotingKeyPair => {
   const pubKey = Buffer.from(prvKey.to_public().as_bytes()).toString(
     "hex"
   );
-
   return {
     prvKey,
     pubKey: Cardano.Bip32PublicKey(pubKey),

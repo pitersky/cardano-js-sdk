@@ -153,7 +153,7 @@ export interface KeyAgent {
   exportRootPrivateKey(): Promise<Cardano.Bip32PrivateKey>;
 }
 
-export type AsyncKeyAgent = Pick<KeyAgent, 'deriveAddress' | 'signBlob' | 'signTransaction'> & {
+export type AsyncKeyAgent = Pick<KeyAgent, 'deriveAddress' | 'derivePublicKey' | 'signBlob' | 'signTransaction'> & {
   knownAddresses$: Observable<GroupedAddress[]>;
 } & Shutdown;
 
