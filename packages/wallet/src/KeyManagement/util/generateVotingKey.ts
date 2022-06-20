@@ -4,6 +4,7 @@ import { util as keyManagementUtil } from '../../KeyManagement';
 
 export const generateVotingKeyPair = (): VotingKeyPair => {
   const mnemonic = keyManagementUtil.generateMnemonicWords(160);
+
   const bip39entropy = keyManagementUtil.mnemonicWordsToEntropy(mnemonic);
   const EMPTY_PASSWORD = Buffer.from('');
   const cslPrvKey = CSL.Bip32PrivateKey.from_bip39_entropy(Buffer.from(bip39entropy, 'hex'), EMPTY_PASSWORD);

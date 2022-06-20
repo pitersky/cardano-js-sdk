@@ -151,9 +151,16 @@ export interface KeyAgent {
    * @throws AuthenticationError
    */
   exportRootPrivateKey(): Promise<Cardano.Bip32PrivateKey>;
+  /**
+   * @throws AuthenticationError
+   */
+  signVotingMetadata(votingPublicKeyHashBytes: Buffer): Promise<Cardano.Ed25519Signature>;
 }
 
-export type AsyncKeyAgent = Pick<KeyAgent, 'deriveAddress' | 'derivePublicKey' | 'signBlob' | 'signTransaction'> & {
+export type AsyncKeyAgent = Pick<
+  KeyAgent,
+  'deriveAddress' | 'derivePublicKey' | 'signBlob' | 'signTransaction' | 'signVotingMetadata'
+> & {
   knownAddresses$: Observable<GroupedAddress[]>;
 } & Shutdown;
 

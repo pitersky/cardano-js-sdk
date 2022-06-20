@@ -14,21 +14,22 @@ export const createVotingAuxData = async ({
   rewardAccount,
   nonce
 }: CreateVotingAuxDataProps): Promise<Cardano.AuxiliaryData> => {
-  const votingPublicKeyHashBytes = Buffer.from(votingPublicKey, 'hex');
+  const votingPublicKeyBytes = Buffer.from(votingPublicKey, 'hex');
   const publicStakeKey = await keyAgent.derivePublicKey(keyManagementUtil.STAKE_KEY_DERIVATION_PATH);
   const publicStakeKeyBytes = Buffer.from(publicStakeKey, 'hex');
   const rewardAccountKeyHash = Cardano.Ed25519KeyHash.fromRewardAccount(rewardAccount);
   const rewardAccountKeyHashBytes = Buffer.from(rewardAccountKeyHash, 'hex');
 
   const votingData = new Map<bigint, Cardano.Metadatum>([
-    [1n, votingPublicKeyHashBytes],
+    [1n, votingPublicKeyBytes],
     [2n, publicStakeKeyBytes],
     [3n, rewardAccountKeyHashBytes],
     [4n, BigInt(nonce)]
   ]);
 
-  // TODO - prepare metadata signing
-  const votingSignature = new Map([[1n, Buffer.from('abc', 'hex')]]);
+  // "pubkey (generated for voting app) signed using stakekey"
+  const signature = await keyAgent.signVotingMetadata(votingPublicKeyBytes);
+  const votingSignature = new Map([[1n, Buffer.from(signature, 'hex')]]);
 
   const votingAuxData = new Map([
     [BigInt(keyManagementUtil.VotingLabels.DATA), votingData],

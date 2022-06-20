@@ -272,4 +272,8 @@ export class LedgerKeyAgent extends KeyAgentBase {
   async exportRootPrivateKey(): Promise<Cardano.Bip32PrivateKey> {
     throw new NotImplementedError('Operation not supported!');
   }
+
+  async signVotingMetadata(): Promise<Cardano.Ed25519Signature> {
+    throw new NotImplementedError('signVotingMetadata');
+  }
 }

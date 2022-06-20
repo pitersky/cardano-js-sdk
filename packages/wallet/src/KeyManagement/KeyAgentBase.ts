@@ -39,6 +39,7 @@ export abstract class KeyAgentBase implements KeyAgent {
     txInternals: TxInternals,
     signTransactionOptions: SignTransactionOptions
   ): Promise<Cardano.Signatures>;
+  abstract signVotingMetadata(votingPublicKeyHashBytes: Buffer): Promise<Cardano.Ed25519Signature>;
 
   constructor(serializableData: SerializableKeyAgentData) {
     this.#serializableData = serializableData;

@@ -10,14 +10,15 @@ import {
 import { AuthenticationError } from './errors';
 import { CSL, Cardano, util } from '@cardano-sdk/core';
 import { KeyAgentBase } from './KeyAgentBase';
-import { TxInternals } from '../Transaction';
 import {
+  STAKE_KEY_DERIVATION_PATH,
   deriveAccountPrivateKey,
   joinMnemonicWords,
   mnemonicWordsToEntropy,
   ownSignatureKeyPaths,
   validateMnemonic
 } from './util';
+import { TxInternals } from '../Transaction';
 import { emip3decrypt, emip3encrypt } from './emip3';
 import uniqBy from 'lodash/uniqBy';
 
@@ -117,6 +118,12 @@ export class InMemoryKeyAgent extends KeyAgentBase {
         })
       )
     );
+  }
+
+  async signVotingMetadata(votingPublicKeyBytes: Buffer): Promise<Cardano.Ed25519Signature> {
+    const { index, role } = STAKE_KEY_DERIVATION_PATH;
+    const { signature } = await this.signBlob({ index, role }, util.bytesToHex(votingPublicKeyBytes));
+    return signature;
   }
 
   async #decryptRootPrivateKey(noCache?: true) {
