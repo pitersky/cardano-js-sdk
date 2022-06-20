@@ -1,6 +1,4 @@
-// @ts-nocheck
-import { Cardano, util } from '@cardano-sdk/core';
-import { SingleAddressWallet, KeyManagement } from '../../../src';
+import { KeyManagement, SingleAddressWallet } from '../../../src';
 import {
   assetProvider,
   chainHistoryProvider,
@@ -17,7 +15,6 @@ import { isNotNil } from '@cardano-sdk/util';
 
 describe('SingleAddressWallet/voting_metadata', () => {
   let wallet: SingleAddressWallet;
-  let ownAddress: Cardano.Address;
 
   beforeAll(async () => {
     wallet = new SingleAddressWallet(
@@ -34,18 +31,15 @@ describe('SingleAddressWallet/voting_metadata', () => {
         walletProvider: await walletProvider
       }
     );
-    ownAddress = (await firstValueFrom(wallet.addresses$))[0].address;
   });
 
   afterAll(() => wallet.shutdown());
 
   test('can submit tx with voting metadata and then query it', async () => {
-    const res = KeyManagement.util.generateVotingKeyPair();
-    const cardanoPrivateKey = Cardano.Bip32PrivateKey.fromHexBlob(util.bytesToHex(res.prvKey.as_bytes()));
+    const votingKeyPair = KeyManagement.util.generateVotingKeyPair();
     const votingTxData = await wallet.initializeVotingRegistrationTx({
-      networkId: Cardano.NetworkId.testnet,
-      votingPublicKey: res.pubKey,
-      nonce: 1234567
+      nonce: 1_234_567,
+      votingPublicKey: votingKeyPair.pubKey
     });
     const { txInternals, auxiliaryData } = votingTxData;
     const outgoingTx = await wallet.finalizeTx(txInternals, auxiliaryData);

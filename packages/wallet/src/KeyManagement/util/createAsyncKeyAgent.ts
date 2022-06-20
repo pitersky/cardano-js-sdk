@@ -12,12 +12,12 @@ export const createAsyncKeyAgent = (keyAgent: KeyAgent): AsyncKeyAgent => {
       }
       return address;
     },
+    derivePublicKey: keyAgent.derivePublicKey.bind(keyAgent),
     knownAddresses$,
     shutdown() {
       knownAddresses$.complete();
     },
     signBlob: keyAgent.signBlob.bind(keyAgent),
-    signTransaction: keyAgent.signTransaction.bind(keyAgent),
-    derivePublicKey: keyAgent.derivePublicKey.bind(keyAgent)
+    signTransaction: keyAgent.signTransaction.bind(keyAgent)
   };
 };

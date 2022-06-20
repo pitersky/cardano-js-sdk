@@ -1,4 +1,4 @@
-import { Cardano, CSL } from '@cardano-sdk/core';
+import { Cardano } from '@cardano-sdk/core';
 import { Observable } from 'rxjs';
 import { Shutdown } from '@cardano-sdk/util';
 import { TxInternals } from '../Transaction';
@@ -158,6 +158,6 @@ export type AsyncKeyAgent = Pick<KeyAgent, 'deriveAddress' | 'derivePublicKey' |
 } & Shutdown;
 
 export interface VotingKeyPair {
-  prvKey: CSL.Bip32PrivateKey;
+  prvKey: Cardano.Bip32PrivateKey;
   pubKey: Cardano.Bip32PublicKey;
-};
+}

@@ -13,6 +13,6 @@ export enum Cip1852PathLevelIndexes {
 }
 
 export enum VotingLabels {
-  DATA = 61284,
-  SIG = 61285,
-};
+  DATA = 61_284,
+  SIG = 61_285
+}
