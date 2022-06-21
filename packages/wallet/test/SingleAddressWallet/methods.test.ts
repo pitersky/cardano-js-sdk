@@ -177,6 +177,24 @@ describe('SingleAddressWallet methods', () => {
       expect(await txPending).toBe(tx);
       expect(await txInFlight).toEqual([tx]);
     });
+
+    it('initializeVotingRegistrationTx', async () => {
+      const votingPublicKey = Cardano.Bip32PublicKey(
+        '0cc46dd6968caa2f3719027844fe7a2f56d6bdcfc1e5d4c0b6e4c04f2920badfa0a4a2405246ca947cfa0c7f93e859d05bcd48b7cf2a224abb59df3b99e57295'
+      );
+      const votingProps = {
+        nonce: 1_234_567,
+        votingPublicKey
+      };
+      const { txInternals, auxiliaryData } = await wallet.initializeVotingRegistrationTx(votingProps);
+      expect(typeof txInternals.hash).toBe('string');
+      expect(txInternals.body.outputs).toHaveLength(2); // 1 to own address and 1 change output
+      expect(txInternals.inputSelection.outputs.size).toBe(1);
+      expect(txInternals.inputSelection.change.size).toBe(1);
+      expect(txInternals.inputSelection.inputs.size).toBeGreaterThan(0);
+      expect(txInternals.inputSelection.fee).toBeGreaterThan(0n);
+      expect(auxiliaryData.body.blob?.size).toBe(2);
+    });
   });
 
   it('sync() calls wallet provider functions until shutdown()', () => {
