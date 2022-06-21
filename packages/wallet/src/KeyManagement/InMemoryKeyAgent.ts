@@ -5,13 +5,15 @@ import {
   KeyAgentType,
   SerializableInMemoryKeyAgentData,
   SignBlobResult,
-  SignTransactionOptions
+  SignTransactionOptions,
+  SignVotingMetadataProps
 } from './types';
 import { AuthenticationError } from './errors';
 import { CSL, Cardano, util } from '@cardano-sdk/core';
 import { KeyAgentBase } from './KeyAgentBase';
 import {
   STAKE_KEY_DERIVATION_PATH,
+  VotingLabels,
   deriveAccountPrivateKey,
   joinMnemonicWords,
   mnemonicWordsToEntropy,
@@ -120,9 +122,25 @@ export class InMemoryKeyAgent extends KeyAgentBase {
     );
   }
 
-  async signVotingMetadata(votingPublicKeyBytes: Buffer): Promise<Cardano.Ed25519Signature> {
+  async signVotingMetadata(props: SignVotingMetadataProps): Promise<Cardano.Ed25519Signature> {
+    const blake2b = require('blake2b');
     const { index, role } = STAKE_KEY_DERIVATION_PATH;
-    const { signature } = await this.signBlob({ index, role }, util.bytesToHex(votingPublicKeyBytes));
+    const generalMetadata = CSL.GeneralTransactionMetadata.new();
+    const registrationData = CSL.encode_json_str_to_metadatum(
+      JSON.stringify({
+        '1': props.votingPublicKey,
+        '2': props.publicStakeKey,
+        '3': props.rewardAccountKeyHash,
+        '4': props.nonce
+      }),
+      CSL.MetadataJsonSchema.BasicConversions
+    );
+    generalMetadata.insert(CSL.BigNum.from_str(VotingLabels.DATA.toString()), registrationData);
+    const hashedMetadata = blake2b(256 / 8)
+      .update(generalMetadata.to_bytes())
+      .digest('binary');
+
+    const { signature } = await this.signBlob({ index, role }, util.bytesToHex(hashedMetadata));
     return signature;
   }
 

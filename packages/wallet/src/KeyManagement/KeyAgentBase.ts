@@ -6,7 +6,8 @@ import {
   KeyRole,
   SerializableKeyAgentData,
   SignBlobResult,
-  SignTransactionOptions
+  SignTransactionOptions,
+  SignVotingMetadataProps
 } from './types';
 import { CSL, Cardano, util } from '@cardano-sdk/core';
 import { STAKE_KEY_DERIVATION_PATH } from './util';
@@ -39,7 +40,7 @@ export abstract class KeyAgentBase implements KeyAgent {
     txInternals: TxInternals,
     signTransactionOptions: SignTransactionOptions
   ): Promise<Cardano.Signatures>;
-  abstract signVotingMetadata(votingPublicKeyHashBytes: Buffer): Promise<Cardano.Ed25519Signature>;
+  abstract signVotingMetadata(props: SignVotingMetadataProps): Promise<Cardano.Ed25519Signature>;
 
   constructor(serializableData: SerializableKeyAgentData) {
     this.#serializableData = serializableData;

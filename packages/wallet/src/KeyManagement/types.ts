@@ -125,6 +125,13 @@ export interface SignTransactionOptions {
   additionalKeyPaths?: AccountKeyDerivationPath[];
 }
 
+export interface SignVotingMetadataProps {
+  votingPublicKey: string;
+  publicStakeKey: string;
+  rewardAccountKeyHash: string;
+  nonce: number;
+}
+
 export interface KeyAgent {
   get networkId(): Cardano.NetworkId;
   get accountIndex(): number;
@@ -154,7 +161,7 @@ export interface KeyAgent {
   /**
    * @throws AuthenticationError
    */
-  signVotingMetadata(votingPublicKeyHashBytes: Buffer): Promise<Cardano.Ed25519Signature>;
+  signVotingMetadata(props: SignVotingMetadataProps): Promise<Cardano.Ed25519Signature>;
 }
 
 export type AsyncKeyAgent = Pick<
