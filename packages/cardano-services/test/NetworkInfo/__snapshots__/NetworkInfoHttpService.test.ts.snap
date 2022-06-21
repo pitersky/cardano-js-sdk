@@ -42,20 +42,6 @@ Object {
 }
 `;
 
-exports[`NetworkInfoHttpService healthy state with NetworkInfoHttpProvider response is an object of lovelace supply info 1`] = `
-Object {
-  "circulating": 69165246561822582n,
-  "total": 40408479600434778n,
-}
-`;
-
-exports[`NetworkInfoHttpService healthy state with NetworkInfoHttpProvider response is an object of stake info 1`] = `
-Object {
-  "active": 15039823438862518n,
-  "live": 69154436284251039n,
-}
-`;
-
 exports[`NetworkInfoHttpService healthy state with NetworkInfoHttpProvider response is an object of time settings 1`] = `
 Array [
   Object {
