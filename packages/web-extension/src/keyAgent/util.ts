@@ -7,5 +7,7 @@ export const keyAgentProperties: RemoteApiProperties<KeyManagement.AsyncKeyAgent
   deriveAddress: RemoteApiPropertyType.MethodReturningPromise,
   knownAddresses$: RemoteApiPropertyType.HotObservable,
   signBlob: RemoteApiPropertyType.MethodReturningPromise,
-  signTransaction: RemoteApiPropertyType.MethodReturningPromise
+  signTransaction: RemoteApiPropertyType.MethodReturningPromise,
+  derivePublicKey: RemoteApiPropertyType.MethodReturningPromise,
+  signVotingMetadata: RemoteApiPropertyType.MethodReturningPromise
 };
