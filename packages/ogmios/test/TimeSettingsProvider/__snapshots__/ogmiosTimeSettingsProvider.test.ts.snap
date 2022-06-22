@@ -1,0 +1,18 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ogmiosTimeSettingsProvider timeSettings success resolves if successful 1`] = `
+Array [
+  Object {
+    "epochLength": 21600,
+    "fromSlotDate": 2017-09-23T21:44:51.000Z,
+    "fromSlotNo": 0,
+    "slotLength": 20,
+  },
+  Object {
+    "epochLength": 432000,
+    "fromSlotDate": 2018-09-28T21:44:51.000Z,
+    "fromSlotNo": 1598400,
+    "slotLength": 1,
+  },
+]
+`;

@@ -13,7 +13,7 @@ import { ProgramOptionDescriptions } from './ProgramOptionDescriptions';
 import { RabbitMqTxSubmitProvider } from '@cardano-sdk/rabbitmq';
 import { ServiceNames } from './ServiceNames';
 import { TxSubmitHttpService } from '../TxSubmit';
-import { ogmiosTxSubmitProvider, urlToConnectionConfig } from '@cardano-sdk/ogmios';
+import { ogmiosTimeSettingsProvider, ogmiosTxSubmitProvider, urlToConnectionConfig } from '@cardano-sdk/ogmios';
 import Logger, { createLogger } from 'bunyan';
 import pg from 'pg';
 
@@ -67,12 +67,19 @@ const serviceMapFactory = (args: ProgramArgs, logger: Logger, cache: InMemoryCac
     if (!db) throw new MissingProgramOption(ServiceNames.NetworkInfo, ProgramOptionDescriptions.DbConnection);
     if (args.options?.cardanoNodeConfigPath === undefined)
       throw new MissingProgramOption(ServiceNames.NetworkInfo, ProgramOptionDescriptions.CardanoNodeConfigPath);
+    if (args.options?.ogmiosUrl === undefined)
+      throw new MissingProgramOption(ServiceNames.NetworkInfo, ProgramOptionDescriptions.OgmiosUrl);
 
     return await NetworkInfoHttpService.create({
       logger,
       networkInfoProvider: new DbSyncNetworkInfoProvider(
-        { cardanoNodeConfigPath: args.options?.cardanoNodeConfigPath, dbPollInterval: args.options?.dbPollInterval },
-        { cache, db, logger }
+        { cardanoNodeConfigPath: args.options.cardanoNodeConfigPath, pollInterval: args.options?.pollInterval },
+        {
+          cache,
+          db,
+          logger,
+          timeSettingsProvider: ogmiosTimeSettingsProvider(urlToConnectionConfig(args.options.ogmiosUrl), logger)
+        }
       )
     });
   },

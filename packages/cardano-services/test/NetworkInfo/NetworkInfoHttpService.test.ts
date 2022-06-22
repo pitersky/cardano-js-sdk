@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable sonarjs/no-duplicate-string */
-import { Cardano, NetworkInfo, NetworkInfoProvider, testnetTimeSettings } from '@cardano-sdk/core';
+import { Cardano, NetworkInfo, NetworkInfoProvider, TimeSettingsProvider } from '@cardano-sdk/core';
 import { DbSyncNetworkInfoProvider, NetworkInfoCacheKey, NetworkInfoHttpService } from '../../src/NetworkInfo';
 import { HttpServer, HttpServerConfig } from '../../src';
 import { InMemoryCache, UNLIMITED_CACHE_TTL } from '../../src/InMemoryCache';
@@ -22,17 +22,30 @@ describe('NetworkInfoHttpService', () => {
   let apiUrlBase: string;
   let config: HttpServerConfig;
   let doNetworkInfoRequest: ReturnType<typeof doServerRequest>;
+  let timeSettingsProvider: TimeSettingsProvider;
 
   const pollInterval = 2 * 1000;
   const cache = new InMemoryCache(UNLIMITED_CACHE_TTL);
   const cardanoNodeConfigPath = process.env.CARDANO_NODE_CONFIG_PATH!;
   const db = new Pool({ connectionString: process.env.DB_CONNECTION_STRING, max: 1, min: 1 });
 
+  const mockTimeSettings = [
+    { epochLength: 21_600, fromSlotDate: new Date(1_563_999_616_000), fromSlotNo: 0, slotLength: 20_000 },
+    { epochLength: 432_000, fromSlotDate: new Date(1_595_964_016_000), fromSlotNo: 1_598_400, slotLength: 1000 }
+  ];
+
   beforeAll(async () => {
     port = await getPort();
     config = { listen: { port } };
     apiUrlBase = `http://localhost:${port}/network-info`;
-    networkInfoProvider = new DbSyncNetworkInfoProvider({ cardanoNodeConfigPath, pollInterval }, { cache, db });
+    timeSettingsProvider = {
+      healthCheck: jest.fn(() => Promise.resolve({ ok: true })),
+      timeSettings: jest.fn(() => Promise.resolve(mockTimeSettings))
+    };
+    networkInfoProvider = new DbSyncNetworkInfoProvider(
+      { cardanoNodeConfigPath, pollInterval },
+      { cache, db, timeSettingsProvider }
+    );
     service = await NetworkInfoHttpService.create({ networkInfoProvider });
     httpServer = new HttpServer(config, { services: [service] });
     doNetworkInfoRequest = doServerRequest(apiUrlBase);
@@ -44,8 +57,7 @@ describe('NetworkInfoHttpService', () => {
 
     beforeEach(async () => {
       await cache.clear();
-      dbConnectionQuerySpy.mockClear();
-      invalidateCacheSpy.mockClear();
+      jest.clearAllMocks();
     });
 
     beforeAll(async () => {
@@ -86,7 +98,8 @@ describe('NetworkInfoHttpService', () => {
     describe('/network', () => {
       const path = '/network';
       const DB_POLL_QUERIES_COUNT = 1;
-      const networkInfoTotalQueriesCount = 4;
+      const dbSyncQueriesCount = 4;
+      const ogmiosQueriesCount = 1;
 
       it('returns a 200 coded response with a well formed HTTP request', async () => {
         expect((await axios.post(`${apiUrlBase}/network`, { args: [] })).status).toEqual(200);
@@ -102,36 +115,39 @@ describe('NetworkInfoHttpService', () => {
       });
 
       describe('cached', () => {
-        it('should query the DB only once when the response is cached', async () => {
+        it('should query only once when the response is cached', async () => {
           await doNetworkInfoRequest<[], NetworkInfo>(path, []);
           await doNetworkInfoRequest<[], NetworkInfo>(path, []);
 
-          expect(dbConnectionQuerySpy).toHaveBeenCalledTimes(networkInfoTotalQueriesCount);
-          expect(cache.keys().length).toEqual(networkInfoTotalQueriesCount);
+          expect(dbConnectionQuerySpy).toHaveBeenCalledTimes(dbSyncQueriesCount);
+          expect(timeSettingsProvider.timeSettings).toHaveBeenCalledTimes(1);
+          expect(cache.keys().length).toEqual(dbSyncQueriesCount + ogmiosQueriesCount);
         });
 
-        it('should call db-sync queries again once the cache is cleared', async () => {
+        it('should call queries again once the cache is cleared', async () => {
           await doNetworkInfoRequest<[], NetworkInfo>(path, []);
           await cache.clear();
           expect(cache.keys().length).toEqual(0);
 
           await doNetworkInfoRequest<[], NetworkInfo>(path, []);
-          expect(dbConnectionQuerySpy).toBeCalledTimes(networkInfoTotalQueriesCount * 2);
+          expect(dbConnectionQuerySpy).toBeCalledTimes(dbSyncQueriesCount * 2);
+          expect(timeSettingsProvider.timeSettings).toHaveBeenCalledTimes(2);
         });
 
         it('should not invalidate the epoch values from the cache if there is no epoch rollover', async () => {
           const currentEpochNo = 205;
-          const totalQueriesCount = networkInfoTotalQueriesCount + DB_POLL_QUERIES_COUNT;
+          const totalDbQueriesCount = dbSyncQueriesCount + DB_POLL_QUERIES_COUNT;
 
           await doNetworkInfoRequest<[], NetworkInfo>(path, []);
           expect(cache.getVal(NetworkInfoCacheKey.CURRENT_EPOCH)).toBeUndefined();
-          expect(cache.keys().length).toEqual(networkInfoTotalQueriesCount);
+          expect(cache.keys().length).toEqual(dbSyncQueriesCount + ogmiosQueriesCount);
 
           await sleep(pollInterval);
 
           expect(cache.getVal(NetworkInfoCacheKey.CURRENT_EPOCH)).toEqual(currentEpochNo);
-          expect(cache.keys().length).toEqual(totalQueriesCount);
-          expect(dbConnectionQuerySpy).toBeCalledTimes(totalQueriesCount);
+          expect(cache.keys().length).toEqual(totalDbQueriesCount + ogmiosQueriesCount);
+          expect(dbConnectionQuerySpy).toBeCalledTimes(totalDbQueriesCount);
+          expect(timeSettingsProvider.timeSettings).toHaveBeenCalledTimes(1);
           expect(invalidateCacheSpy).not.toHaveBeenCalled();
         });
 
@@ -143,7 +159,7 @@ describe('NetworkInfoHttpService', () => {
             await doNetworkInfoRequest<[], NetworkInfo>(path, []);
 
             await sleep(pollInterval);
-            expect(cache.keys().length).toEqual(networkInfoTotalQueriesCount + DB_POLL_QUERIES_COUNT);
+            expect(cache.keys().length).toEqual(dbSyncQueriesCount + ogmiosQueriesCount + DB_POLL_QUERIES_COUNT);
 
             await ingestDbData(
               dbConnection,
@@ -155,7 +171,8 @@ describe('NetworkInfoHttpService', () => {
             await sleep(pollInterval);
             expect(invalidateCacheSpy).toHaveBeenCalledWith([
               NetworkInfoCacheKey.TOTAL_SUPPLY,
-              NetworkInfoCacheKey.ACTIVE_STAKE
+              NetworkInfoCacheKey.ACTIVE_STAKE,
+              NetworkInfoCacheKey.TIME_SETTINGS
             ]);
             expect(cache.getVal(NetworkInfoCacheKey.CURRENT_EPOCH)).toEqual(greaterEpoch);
             expect(cache.keys().length).toEqual(3);
@@ -177,7 +194,7 @@ describe('NetworkInfoHttpService', () => {
         const testnetNetworkInfo: NetworkInfo['network'] = {
           id: Cardano.NetworkId.testnet,
           magic: Cardano.CardanoNetworkMagic.Testnet,
-          timeSettings: testnetTimeSettings
+          timeSettings: mockTimeSettings
         };
         const response = await provider.networkInfo();
         expect(response.network).toEqual(testnetNetworkInfo);

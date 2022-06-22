@@ -13,7 +13,11 @@ export const pollService = (cache: InMemoryCache, action: Action<number>, interv
     if (!currentEpoch || shouldInvalidateEpochValues) {
       cache.set<number>(NetworkInfoCacheKey.CURRENT_EPOCH, lastEpoch, UNLIMITED_CACHE_TTL);
       shouldInvalidateEpochValues
-        ? cache.invalidate([NetworkInfoCacheKey.TOTAL_SUPPLY, NetworkInfoCacheKey.ACTIVE_STAKE])
+        ? cache.invalidate([
+            NetworkInfoCacheKey.TOTAL_SUPPLY,
+            NetworkInfoCacheKey.ACTIVE_STAKE,
+            NetworkInfoCacheKey.TIME_SETTINGS
+          ])
         : void 0;
     }
   };

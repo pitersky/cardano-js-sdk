@@ -1,16 +1,14 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable max-len */
-import { Cardano, ProviderError, TxSubmitProvider } from '@cardano-sdk/core';
 import { Connection, createConnectionObject } from '@cardano-ogmios/client';
-import { createMockOgmiosServer, listenPromise, serverClosePromise } from './mocks/mockOgmiosServer';
+import { ProviderError, TimeSettingsProvider } from '@cardano-sdk/core';
+import { createMockOgmiosServer, listenPromise, serverClosePromise } from '../mocks/mockOgmiosServer';
 import { getRandomPort } from 'get-port-please';
-import { ogmiosTxSubmitProvider } from '../src';
+import { ogmiosTimeSettingsProvider } from '../../src';
 import http from 'http';
 
-describe('ogmiosTxSubmitProvider', () => {
+describe('ogmiosTimeSettingsProvider', () => {
   let mockServer: http.Server;
   let connection: Connection;
-  let provider: TxSubmitProvider;
+  let provider: TimeSettingsProvider;
 
   beforeAll(async () => {
     connection = createConnectionObject({ port: await getRandomPort() });
@@ -23,50 +21,47 @@ describe('ogmiosTxSubmitProvider', () => {
     });
 
     it('is not ok if cannot connect', async () => {
-      provider = ogmiosTxSubmitProvider(connection);
+      provider = ogmiosTimeSettingsProvider(connection);
       const res = await provider.healthCheck();
       expect(res).toEqual({ ok: false });
     });
 
     it('is ok if node is close to the network tip', async () => {
       mockServer = createMockOgmiosServer({
-        healthCheck: { response: { networkSynchronization: 0.999, success: true } },
-        submitTx: { response: { success: true } }
+        healthCheck: { response: { networkSynchronization: 0.999, success: true } }
       });
       await listenPromise(mockServer, connection.port);
-      provider = ogmiosTxSubmitProvider(connection);
+      provider = ogmiosTimeSettingsProvider(connection);
       const res = await provider.healthCheck();
       expect(res).toEqual({ ok: true });
     });
 
     it('is not ok if node is not close to the network tip', async () => {
       mockServer = createMockOgmiosServer({
-        healthCheck: { response: { networkSynchronization: 0.8, success: true } },
-        submitTx: { response: { success: true } }
+        healthCheck: { response: { networkSynchronization: 0.8, success: true } }
       });
       await listenPromise(mockServer, connection.port);
-      provider = ogmiosTxSubmitProvider(connection);
+      provider = ogmiosTimeSettingsProvider(connection);
       const res = await provider.healthCheck();
       expect(res).toEqual({ ok: false });
     });
 
     it('throws a typed error if caught during the service interaction', async () => {
       mockServer = createMockOgmiosServer({
-        healthCheck: { response: { failWith: new Error('Some error'), success: false } },
-        submitTx: { response: { success: true } }
+        healthCheck: { response: { failWith: new Error('Some error'), success: false } }
       });
       await listenPromise(mockServer, connection.port);
-      provider = ogmiosTxSubmitProvider(connection);
+      provider = ogmiosTimeSettingsProvider(connection);
       await expect(provider.healthCheck()).rejects.toThrowError(ProviderError);
     });
   });
 
-  describe('submitTx', () => {
+  describe('timeSettings', () => {
     describe('success', () => {
       beforeAll(async () => {
-        mockServer = createMockOgmiosServer({ submitTx: { response: { success: true } } });
+        mockServer = createMockOgmiosServer({ timeSettings: { response: { success: true } } });
         await listenPromise(mockServer, connection.port);
-        provider = ogmiosTxSubmitProvider(connection);
+        provider = ogmiosTimeSettingsProvider(connection);
       });
 
       afterAll(async () => {
@@ -74,29 +69,25 @@ describe('ogmiosTxSubmitProvider', () => {
       });
 
       it('resolves if successful', async () => {
-        try {
-          const res = await provider.submitTx(new Uint8Array());
-          expect(res).toBeUndefined();
-        } catch (error) {
-          expect(error).toBeUndefined();
-        }
+        const res = await provider.timeSettings();
+        expect(res).toMatchSnapshot();
       });
     });
 
     describe('failure', () => {
+      beforeAll(async () => {
+        mockServer = createMockOgmiosServer({
+          timeSettings: { response: { failWith: { type: 'queryUnavailableInEra' }, success: false } }
+        });
+        await listenPromise(mockServer, connection.port);
+        provider = ogmiosTimeSettingsProvider(connection);
+      });
       afterEach(async () => {
         await serverClosePromise(mockServer);
       });
 
       it('rejects with errors thrown by the service', async () => {
-        mockServer = createMockOgmiosServer({
-          submitTx: { response: { failWith: { type: 'eraMismatch' }, success: false } }
-        });
-        await listenPromise(mockServer, connection.port);
-        provider = ogmiosTxSubmitProvider(connection);
-        await expect(provider.submitTx(new Uint8Array())).rejects.toThrowError(
-          Cardano.TxSubmissionErrors.EraMismatchError
-        );
+        await expect(provider.timeSettings()).rejects.toThrowError(ProviderError);
       });
     });
   });

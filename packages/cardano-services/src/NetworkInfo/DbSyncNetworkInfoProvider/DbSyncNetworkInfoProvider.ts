@@ -3,7 +3,7 @@ import {
   NetworkInfo,
   NetworkInfoProvider,
   ProtocolParametersRequiredByWallet,
-  timeSettingsConfig
+  TimeSettingsProvider
 } from '@cardano-sdk/core';
 import { DbSyncProvider } from '../../DbSyncProvider';
 import { GenesisData } from './types';
@@ -24,6 +24,7 @@ export interface NetworkInfoProviderDependencies {
   db: Pool;
   cache: InMemoryCache;
   logger?: Logger;
+  timeSettingsProvider: TimeSettingsProvider;
 }
 export class DbSyncNetworkInfoProvider extends DbSyncProvider implements NetworkInfoProvider {
   #logger: Logger;
@@ -32,10 +33,11 @@ export class DbSyncNetworkInfoProvider extends DbSyncProvider implements Network
   #genesisDataReady: Promise<GenesisData>;
   #pollInterval: number;
   #pollService: Shutdown | null;
+  #timeSettingsProvider: TimeSettingsProvider;
 
   constructor(
     { cardanoNodeConfigPath, pollInterval }: NetworkInfoProviderProps,
-    { db, cache, logger = dummyLogger }: NetworkInfoProviderDependencies
+    { db, cache, logger = dummyLogger, timeSettingsProvider }: NetworkInfoProviderDependencies
   ) {
     super(db);
     this.#logger = logger;
@@ -43,15 +45,15 @@ export class DbSyncNetworkInfoProvider extends DbSyncProvider implements Network
     this.#builder = new NetworkInfoBuilder(db, logger);
     this.#genesisDataReady = loadGenesisData(cardanoNodeConfigPath);
     this.#pollInterval = pollInterval;
+    this.#timeSettingsProvider = timeSettingsProvider;
   }
 
   public async networkInfo(): Promise<NetworkInfo> {
     const { networkMagic, networkId, maxLovelaceSupply } = await this.#genesisDataReady;
-    const timeSettings = timeSettingsConfig[networkMagic];
 
     this.#logger.debug('About to query network info data');
 
-    const [liveStake, circulatingSupply, activeStake, totalSupply] = await Promise.all([
+    const [liveStake, circulatingSupply, activeStake, totalSupply, timeSettings] = await Promise.all([
       this.#cache.get(NetworkInfoCacheKey.LIVE_STAKE, () => this.#builder.queryLiveStake()),
       this.#cache.get(NetworkInfoCacheKey.CIRCULATING_SUPPLY, () => this.#builder.queryCirculatingSupply()),
       this.#cache.get(NetworkInfoCacheKey.ACTIVE_STAKE, () => this.#builder.queryActiveStake(), UNLIMITED_CACHE_TTL),
@@ -59,7 +61,8 @@ export class DbSyncNetworkInfoProvider extends DbSyncProvider implements Network
         NetworkInfoCacheKey.TOTAL_SUPPLY,
         () => this.#builder.queryTotalSupply(maxLovelaceSupply),
         UNLIMITED_CACHE_TTL
-      )
+      ),
+      this.#cache.get(NetworkInfoCacheKey.TIME_SETTINGS, this.#timeSettingsProvider.timeSettings, UNLIMITED_CACHE_TTL)
     ]);
 
     return toNetworkInfo({

@@ -1,7 +1,7 @@
 import { CACHE_TTL_DEFAULT } from '../../src/InMemoryCache';
 import { Connection } from '@cardano-ogmios/client';
 import { HttpServer } from '../../src';
-import { MissingProgramOption, ServiceNames, loadHttpServer } from '../../src/Program';
+import { MissingProgramOption, ProgramOptionDescriptions, ServiceNames, loadHttpServer } from '../../src/Program';
 import { POLL_INTERVAL_DEFAULT } from '../../src/NetworkInfo';
 import { ProviderError, ProviderFailure } from '@cardano-sdk/core';
 import { URL } from 'url';
@@ -73,7 +73,7 @@ describe('loadHttpServer', () => {
             apiUrl,
             serviceNames: [ServiceNames.StakePool]
           })
-      ).rejects.toThrow(MissingProgramOption);
+      ).rejects.toThrow(new MissingProgramOption(ServiceNames.StakePool, ProgramOptionDescriptions.DbConnection));
     });
 
     it('throws if genesis-config dependent service is nominated without providing the node config path', async () => {
@@ -81,9 +81,27 @@ describe('loadHttpServer', () => {
         async () =>
           await loadHttpServer({
             apiUrl,
+            options: {
+              cacheTtl: 0,
+              dbConnectionString: 'postgres',
+              ogmiosUrl: new URL('http://localhost:1337'),
+              pollInterval: 0
+            },
             serviceNames: [ServiceNames.NetworkInfo]
           })
-      ).rejects.toThrow(MissingProgramOption);
+      ).rejects.toThrow(
+        new MissingProgramOption(ServiceNames.NetworkInfo, ProgramOptionDescriptions.CardanoNodeConfigPath)
+      );
+    });
+    it('throws if ogmios dependent service is nominated without providing the ogmios url', async () => {
+      await expect(
+        async () =>
+          await loadHttpServer({
+            apiUrl,
+            options: { cacheTtl: 0, cardanoNodeConfigPath: 'config', dbConnectionString: 'postgres', pollInterval: 0 },
+            serviceNames: [ServiceNames.NetworkInfo]
+          })
+      ).rejects.toThrow(new MissingProgramOption(ServiceNames.NetworkInfo, ProgramOptionDescriptions.OgmiosUrl));
     });
   });
 
