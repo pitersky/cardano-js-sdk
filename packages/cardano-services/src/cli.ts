@@ -11,7 +11,6 @@ import {
 import { CACHE_TTL_DEFAULT } from './InMemoryCache';
 import { Command } from 'commander';
 import { CommonOptionDescriptions, Programs, USE_QUEUE_DEFAULT, WrongOption } from './ProgramsCommon';
-import { DB_POLL_INTERVAL_DEFAULT } from './NetworkInfo';
 import { InvalidLoggerLevel } from './errors';
 import {
   PARALLEL_MODE_DEFAULT,
@@ -21,6 +20,7 @@ import {
   TxWorkerOptions,
   loadTxWorker
 } from './TxWorker';
+import { POLL_INTERVAL_DEFAULT } from './NetworkInfo';
 import { URL } from 'url';
 import { cacheTtlValidator } from './util/validators';
 import { loggerMethodNames } from './util';
@@ -99,7 +99,7 @@ commonOptions(
     '--db-poll-interval <dbPollInterval>',
     ProgramOptionDescriptions.DbPollInterval,
     (interval) => Number.parseInt(interval, 10),
-    DB_POLL_INTERVAL_DEFAULT
+    POLL_INTERVAL_DEFAULT
   )
   .option('--use-queue', ProgramOptionDescriptions.UseQueue, () => true, USE_QUEUE_DEFAULT)
   .action(async (serviceNames: ServiceNames[], options: { apiUrl: URL } & HttpServerOptions) => {

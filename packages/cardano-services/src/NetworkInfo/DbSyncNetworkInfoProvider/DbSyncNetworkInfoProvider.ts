@@ -14,11 +14,11 @@ import { NetworkInfoCacheKey } from '.';
 import { Pool } from 'pg';
 import { Shutdown } from '@cardano-sdk/util';
 import { loadGenesisData, toGenesisParams, toLedgerTip, toNetworkInfo, toWalletProtocolParams } from './mappers';
-import { pollDbSync } from './utils';
+import { pollService } from './utils';
 
 export interface NetworkInfoProviderProps {
   cardanoNodeConfigPath: string;
-  dbPollInterval: number;
+  pollInterval: number;
 }
 export interface NetworkInfoProviderDependencies {
   db: Pool;
@@ -30,11 +30,11 @@ export class DbSyncNetworkInfoProvider extends DbSyncProvider implements Network
   #cache: InMemoryCache;
   #builder: NetworkInfoBuilder;
   #genesisDataReady: Promise<GenesisData>;
-  #dbPollInterval: number;
+  #pollInterval: number;
   #pollService: Shutdown | null;
 
   constructor(
-    { cardanoNodeConfigPath, dbPollInterval }: NetworkInfoProviderProps,
+    { cardanoNodeConfigPath, pollInterval }: NetworkInfoProviderProps,
     { db, cache, logger = dummyLogger }: NetworkInfoProviderDependencies
   ) {
     super(db);
@@ -42,7 +42,7 @@ export class DbSyncNetworkInfoProvider extends DbSyncProvider implements Network
     this.#cache = cache;
     this.#builder = new NetworkInfoBuilder(db, logger);
     this.#genesisDataReady = loadGenesisData(cardanoNodeConfigPath);
-    this.#dbPollInterval = dbPollInterval;
+    this.#pollInterval = pollInterval;
   }
 
   public async networkInfo(): Promise<NetworkInfo> {
@@ -91,7 +91,7 @@ export class DbSyncNetworkInfoProvider extends DbSyncProvider implements Network
 
   async start(): Promise<void> {
     if (!this.#pollService)
-      this.#pollService = pollDbSync(this.#cache, () => this.#builder.queryLatestEpoch(), this.#dbPollInterval);
+      this.#pollService = pollService(this.#cache, () => this.#builder.queryLatestEpoch(), this.#pollInterval);
   }
 
   async close(): Promise<void> {

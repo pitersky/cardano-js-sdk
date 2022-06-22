@@ -19,8 +19,8 @@ import pg from 'pg';
 
 export interface HttpServerOptions extends CommonProgramOptions {
   dbConnectionString?: string;
-  dbQueriesCacheTtl: number;
-  dbPollInterval: number;
+  cacheTtl: number;
+  pollInterval: number;
   cardanoNodeConfigPath?: string;
   metricsEnabled?: boolean;
   useQueue?: boolean;
@@ -104,7 +104,7 @@ export const loadHttpServer = async (args: ProgramArgs): Promise<HttpServer> => 
     ? new pg.Pool({ connectionString: args.options.dbConnectionString })
     : undefined;
 
-  const cache = new InMemoryCache(args.options?.dbQueriesCacheTtl);
+  const cache = new InMemoryCache(args.options?.cacheTtl);
 
   const serviceMap = serviceMapFactory(args, logger, cache, db);
 

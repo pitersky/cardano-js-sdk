@@ -1,8 +1,8 @@
 import { CACHE_TTL_DEFAULT } from '../../src/InMemoryCache';
 import { Connection } from '@cardano-ogmios/client';
-import { DB_POLL_INTERVAL_DEFAULT } from '../../src/NetworkInfo';
 import { HttpServer } from '../../src';
 import { MissingProgramOption, ServiceNames, loadHttpServer } from '../../src/Program';
+import { POLL_INTERVAL_DEFAULT } from '../../src/NetworkInfo';
 import { ProviderError, ProviderFailure } from '@cardano-sdk/core';
 import { URL } from 'url';
 import {
@@ -19,8 +19,8 @@ describe('loadHttpServer', () => {
   let apiUrl: URL;
   let cardanoNodeConfigPath: string;
   let dbConnectionString: string;
-  let dbQueriesCacheTtl: number;
-  let dbPollInterval: number;
+  let cacheTtl: number;
+  let pollInterval: number;
   let httpServer: HttpServer;
   let ogmiosConnection: Connection;
   let ogmiosServer: http.Server;
@@ -30,8 +30,8 @@ describe('loadHttpServer', () => {
     dbConnectionString = process.env.DB_CONNECTION_STRING!;
     cardanoNodeConfigPath = process.env.CARDANO_NODE_CONFIG_PATH!;
     ogmiosConnection = await createConnectionObjectWithRandomPort();
-    dbQueriesCacheTtl = CACHE_TTL_DEFAULT;
-    dbPollInterval = DB_POLL_INTERVAL_DEFAULT;
+    cacheTtl = CACHE_TTL_DEFAULT;
+    pollInterval = POLL_INTERVAL_DEFAULT;
   });
 
   describe('healthy internal providers', () => {
@@ -49,11 +49,11 @@ describe('loadHttpServer', () => {
       httpServer = await loadHttpServer({
         apiUrl,
         options: {
+          cacheTtl,
           cardanoNodeConfigPath,
           dbConnectionString,
-          dbPollInterval,
-          dbQueriesCacheTtl,
-          ogmiosUrl: new URL(ogmiosConnection.address.webSocket)
+          ogmiosUrl: new URL(ogmiosConnection.address.webSocket),
+          pollInterval
         },
         serviceNames: [
           ServiceNames.StakePool,
@@ -104,10 +104,10 @@ describe('loadHttpServer', () => {
           await loadHttpServer({
             apiUrl,
             options: {
+              cacheTtl,
               dbConnectionString,
-              dbPollInterval,
-              dbQueriesCacheTtl,
-              ogmiosUrl: new URL(ogmiosConnection.address.webSocket)
+              ogmiosUrl: new URL(ogmiosConnection.address.webSocket),
+              pollInterval
             },
             serviceNames: [ServiceNames.StakePool, ServiceNames.TxSubmit]
           })
