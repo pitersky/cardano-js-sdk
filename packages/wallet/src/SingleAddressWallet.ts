@@ -283,11 +283,11 @@ export class SingleAddressWallet implements ObservableWallet {
 
   async initializeVotingRegistrationTx(props: InitializeVotingTxProps): Promise<InitializeVotingTxResult> {
     const ownAddress = (await firstValueFrom(this.addresses$))[0].address;
-    const rewardAccount = (await firstValueFrom(this.addresses$))[0].rewardAccount;
+    const networkId = (await firstValueFrom(this.networkInfo$)).network.id;
     const auxiliaryData = await createVotingAuxData({
       keyAgent: this.keyAgent,
+      networkId,
       nonce: props.nonce,
-      rewardAccount,
       votingPublicKey: props.votingPublicKey
     });
 

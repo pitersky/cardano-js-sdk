@@ -130,7 +130,7 @@ export class InMemoryKeyAgent extends KeyAgentBase {
       JSON.stringify({
         '1': props.votingPublicKey,
         '2': props.publicStakeKey,
-        '3': props.rewardAccountKeyHash,
+        '3': props.rewardAccountKey,
         '4': props.nonce
       }),
       CSL.MetadataJsonSchema.BasicConversions

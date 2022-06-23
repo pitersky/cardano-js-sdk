@@ -128,7 +128,7 @@ export interface SignTransactionOptions {
 export interface SignVotingMetadataProps {
   votingPublicKey: string;
   publicStakeKey: string;
-  rewardAccountKeyHash: string;
+  rewardAccountKey: string;
   nonce: number;
 }
 

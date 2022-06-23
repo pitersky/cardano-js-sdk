@@ -1,33 +1,34 @@
 import { AsyncKeyAgent, util as keyManagementUtil } from '../KeyManagement';
-import { Cardano } from '@cardano-sdk/core';
+import { CSL, Cardano } from '@cardano-sdk/core';
 
 export type CreateVotingAuxDataProps = {
   keyAgent: AsyncKeyAgent;
   votingPublicKey: Cardano.Bip32PublicKey;
-  rewardAccount: Cardano.RewardAccount;
   nonce: number;
+  networkId: Cardano.NetworkId;
 };
 
 export const createVotingAuxData = async ({
   keyAgent,
   votingPublicKey,
-  rewardAccount,
-  nonce
+  nonce,
+  networkId
 }: CreateVotingAuxDataProps): Promise<Cardano.AuxiliaryData> => {
   const publicStakeKey = await keyAgent.derivePublicKey(keyManagementUtil.STAKE_KEY_DERIVATION_PATH);
-  const rewardAccountKeyHash = Cardano.Ed25519KeyHash.fromRewardAccount(rewardAccount);
-
+  const cslPublicStakeKey = CSL.PublicKey.from_bytes(Buffer.from(publicStakeKey, 'hex'));
+  const rewardAddress = CSL.RewardAddress.new(networkId, CSL.StakeCredential.from_keyhash(cslPublicStakeKey.hash()));
+  const rewardAddressBytes = Buffer.from(rewardAddress.to_address().to_bytes());
   const votingData = new Map<bigint, Cardano.Metadatum>([
     [1n, Buffer.from(votingPublicKey, 'hex')],
     [2n, Buffer.from(publicStakeKey, 'hex')],
-    [3n, Buffer.from(rewardAccountKeyHash, 'hex')],
+    [3n, rewardAddressBytes],
     [4n, BigInt(nonce)]
   ]);
 
   const signature = await keyAgent.signVotingMetadata({
     nonce,
     publicStakeKey: `0x${publicStakeKey}`,
-    rewardAccountKeyHash: `0x${rewardAccountKeyHash}`,
+    rewardAccountKey: `0x${rewardAddressBytes.toString('hex')}`,
     votingPublicKey: `0x${votingPublicKey}`
   });
 
@@ -38,6 +39,7 @@ export const createVotingAuxData = async ({
     [BigInt(keyManagementUtil.VotingLabels.DATA), votingData],
     [BigInt(keyManagementUtil.VotingLabels.SIG), votingSignature]
   ]);
+
   return {
     body: {
       blob: votingAuxData

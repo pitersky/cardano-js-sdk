@@ -44,7 +44,6 @@ describe('SingleAddressWallet/voting_metadata', () => {
     });
     const { txInternals, auxiliaryData } = votingTxData;
     const outgoingTx = await wallet.finalizeTx(txInternals, auxiliaryData);
-
     await wallet.submitTx(outgoingTx);
     const loadedTx = await firstValueFrom(
       wallet.transactions.history$.pipe(
