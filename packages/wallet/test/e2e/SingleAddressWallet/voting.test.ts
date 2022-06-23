@@ -51,13 +51,13 @@ describe('SingleAddressWallet/voting_metadata', () => {
         filter(isNotNil)
       )
     );
-    const auxBlobData = auxiliaryData?.body.blob?.get(
+    const auxBlobData = auxiliaryData.body.blob?.get(
       BigInt(KeyManagement.util.VotingLabels.DATA)
     ) as Cardano.MetadatumMap;
     const loadedTxAuxBlobData = loadedTx.auxiliaryData?.body.blob?.get(
       BigInt(KeyManagement.util.VotingLabels.DATA)
     ) as Cardano.MetadatumMap;
-    const auxBlobSignature = auxiliaryData?.body.blob?.get(
+    const auxBlobSignature = auxiliaryData.body.blob?.get(
       BigInt(KeyManagement.util.VotingLabels.SIG)
     ) as Cardano.MetadatumMap;
     const loadedTxAuxBlobSignature = loadedTx.auxiliaryData?.body.blob?.get(
