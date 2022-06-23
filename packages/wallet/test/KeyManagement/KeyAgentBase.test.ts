@@ -14,6 +14,7 @@ class MockKeyAgent extends KeyManagement.KeyAgentBase {
   signBlob = jest.fn();
   exportRootPrivateKey = jest.fn();
   signTransaction = jest.fn();
+  signVotingMetadata = jest.fn();
   deriveCslPublicKeyPublic(derivationPath: KeyManagement.AccountKeyDerivationPath) {
     return this.deriveCslPublicKey(derivationPath);
   }
