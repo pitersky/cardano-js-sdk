@@ -24,7 +24,7 @@ import {
   SyncStatus
 } from './types';
 import {
-  Balance,
+  BalanceTracker,
   DelegationTracker,
   FailedTx,
   PersistentDocumentTrackerSubject,
