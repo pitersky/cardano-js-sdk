@@ -1,25 +1,19 @@
+import { HealthCheckResponse, Provider } from '../../src/Provider/Provider';
 import { ProviderFactory } from '../../src';
 
 // Mock providers.
 
 /**
- * Provider interface.
- */
-interface IProvider {
-  getName(): string;
-}
-
-/**
  * Mock provider A.
  */
-class MockProviderA implements IProvider {
+class MockProviderA implements Provider {
   /**
-   * Dummy provider method.
-   *
-   * @returns The provider name.
+   * Dummy health check method.
    */
-  getName() {
-    return 'A';
+  healthCheck(): Promise<HealthCheckResponse> {
+    return new Promise<HealthCheckResponse>(async (resolve) => {
+      resolve({ ok: true });
+    });
   }
 
   /**
@@ -27,8 +21,8 @@ class MockProviderA implements IProvider {
    *
    * @returns a new provider A.
    */
-  static create(): Promise<IProvider> {
-    return new Promise<IProvider>(async (resolve) => {
+  static create(): Promise<Provider> {
+    return new Promise<Provider>(async (resolve) => {
       resolve(new MockProviderA());
     });
   }
@@ -37,14 +31,14 @@ class MockProviderA implements IProvider {
 /**
  * Mock provider B.
  */
-class MockProviderB implements IProvider {
+class MockProviderB implements Provider {
   /**
-   * Dummy provider method.
-   *
-   * @returns The provider name.
+   * Dummy health check method.
    */
-  getName() {
-    return 'B';
+  healthCheck(): Promise<HealthCheckResponse> {
+    return new Promise<HealthCheckResponse>(async (resolve) => {
+      resolve({ ok: false });
+    });
   }
 
   /**
@@ -52,8 +46,8 @@ class MockProviderB implements IProvider {
    *
    * @returns a new provider B.
    */
-  static create(): Promise<IProvider> {
-    return new Promise<IProvider>(async (resolve) => {
+  static create(): Promise<Provider> {
+    return new Promise<Provider>(async (resolve) => {
       resolve(new MockProviderB());
     });
   }
@@ -61,8 +55,8 @@ class MockProviderB implements IProvider {
 
 describe('ProviderFactory', () => {
   it('can register several providers', async () => {
-    // Arrange.
-    const factory = new ProviderFactory<IProvider>();
+    // Arrange
+    const factory = new ProviderFactory<Provider>();
 
     // Act
     factory.register(MockProviderA.name, MockProviderA.create);
@@ -74,24 +68,27 @@ describe('ProviderFactory', () => {
   });
 
   it('can create a registered provider', async () => {
-    // Arrange.
-    const factory = new ProviderFactory<IProvider>();
+    // Arrange
+    const factory = new ProviderFactory<Provider>();
 
-    // Act
     factory.register(MockProviderA.name, MockProviderA.create);
     factory.register(MockProviderB.name, MockProviderB.create);
 
-    const providerA: IProvider = await factory.create(MockProviderA.name, {});
-    const providerB: IProvider = await factory.create(MockProviderB.name, {});
+    // Act
+    const providerA: Provider = await factory.create(MockProviderA.name, {});
+    const providerB: Provider = await factory.create(MockProviderB.name, {});
+
+    const resultA = await providerA.healthCheck();
+    const resultB = await providerB.healthCheck();
 
     // Assert
-    expect(providerA.getName()).toEqual('A');
-    expect(providerB.getName()).toEqual('B');
+    expect(resultA.ok).toEqual(true);
+    expect(resultB.ok).toEqual(false);
   });
 
   it('throws if requested provider is not supported', async () => {
-    // Arrange.
-    const factory = new ProviderFactory<IProvider>();
+    // Arrange
+    const factory = new ProviderFactory<Provider>();
 
     // Assert
     expect(() => factory.create(MockProviderA.name, {})).toThrow(`Provider unsupported: ${MockProviderA.name}`);
