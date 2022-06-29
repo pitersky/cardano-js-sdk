@@ -20,7 +20,7 @@ export const epochPollService = (
         ? cache.invalidate([
             NetworkInfoCacheKey.TOTAL_SUPPLY,
             NetworkInfoCacheKey.ACTIVE_STAKE,
-            NetworkInfoCacheKey.TIME_SETTINGS
+            NetworkInfoCacheKey.ERA_SUMMARIES
           ])
         : void 0;
     }

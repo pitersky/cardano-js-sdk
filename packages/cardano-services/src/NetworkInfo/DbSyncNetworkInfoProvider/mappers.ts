@@ -14,7 +14,7 @@ import path from 'path';
 interface ToNetworkInfoInput {
   networkMagic: Cardano.NetworkMagic;
   networkId: Cardano.CardanoNetworkId;
-  timeSettings: TimeSettings[];
+  eraSummaries: Cardano.EraSummary[];
   maxLovelaceSupply: Cardano.Lovelace;
   circulatingSupply: string;
   totalSupply: string;
@@ -27,10 +27,17 @@ export const networkIdMap = {
   Testnet: Cardano.NetworkId.testnet
 };
 
+const toTimeSettings = (eraSummary: Cardano.EraSummary): TimeSettings => ({
+  epochLength: eraSummary.parameters.epochLength,
+  fromSlotDate: eraSummary.start.time,
+  fromSlotNo: eraSummary.start.slot,
+  slotLength: eraSummary.parameters.slotLength
+});
+
 export const toNetworkInfo = ({
   networkId,
   networkMagic,
-  timeSettings,
+  eraSummaries,
   circulatingSupply,
   maxLovelaceSupply,
   totalSupply,
@@ -45,7 +52,7 @@ export const toNetworkInfo = ({
   network: {
     id: networkIdMap[networkId],
     magic: networkMagic,
-    timeSettings
+    timeSettings: eraSummaries.map(toTimeSettings)
   },
   stake: {
     active: BigInt(activeStake),

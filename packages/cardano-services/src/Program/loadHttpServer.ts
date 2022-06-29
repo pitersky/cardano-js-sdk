@@ -13,7 +13,7 @@ import { ProgramOptionDescriptions } from './ProgramOptionDescriptions';
 import { RabbitMqTxSubmitProvider } from '@cardano-sdk/rabbitmq';
 import { ServiceNames } from './ServiceNames';
 import { TxSubmitHttpService } from '../TxSubmit';
-import { ogmiosTimeSettingsProvider, ogmiosTxSubmitProvider, urlToConnectionConfig } from '@cardano-sdk/ogmios';
+import { cardanoNode, ogmiosTxSubmitProvider, urlToConnectionConfig } from '@cardano-sdk/ogmios';
 import Logger, { createLogger } from 'bunyan';
 import pg from 'pg';
 
@@ -81,7 +81,7 @@ const serviceMapFactory = (args: ProgramArgs, logger: Logger, cache: InMemoryCac
           cache,
           db,
           logger,
-          timeSettingsProvider: ogmiosTimeSettingsProvider(urlToConnectionConfig(args.options.ogmiosUrl), logger)
+          stateQuery: cardanoNode(urlToConnectionConfig(args.options.ogmiosUrl), logger).StateQuery
         }
       )
     });

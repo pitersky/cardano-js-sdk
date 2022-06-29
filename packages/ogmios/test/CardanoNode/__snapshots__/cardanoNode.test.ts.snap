@@ -1,0 +1,26 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`cardanoNode eraSummaries success resolves if successful 1`] = `
+Array [
+  Object {
+    "parameters": Object {
+      "epochLength": 21600,
+      "slotLength": 20,
+    },
+    "start": Object {
+      "slot": 0,
+      "time": 2017-09-23T21:44:51.000Z,
+    },
+  },
+  Object {
+    "parameters": Object {
+      "epochLength": 432000,
+      "slotLength": 1,
+    },
+    "start": Object {
+      "slot": 1598400,
+      "time": 2018-09-28T21:44:51.000Z,
+    },
+  },
+]
+`;

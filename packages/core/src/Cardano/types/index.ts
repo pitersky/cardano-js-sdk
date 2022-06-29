@@ -15,6 +15,7 @@ export * from './Genesis';
 export * from './Block';
 export * from './Asset';
 export * from './AuxiliaryData';
+export * from './CardanoNode';
 export * from './Key';
 export * from './TxSubmissionErrors';
 export * as NativeScriptType from './NativeScriptType';

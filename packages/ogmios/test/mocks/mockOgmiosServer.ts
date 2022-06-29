@@ -1,3 +1,4 @@
+/* eslint-disable sonarjs/no-duplicate-string */
 import { QueryUnavailableInCurrentEraError, Schema } from '@cardano-ogmios/client';
 import { Server, createServer } from 'http';
 import WebSocket from 'ws';
@@ -50,11 +51,13 @@ export interface MockOgmiosServerConfig {
       };
     };
   };
-  timeSettings?: {
-    response: {
-      success: boolean;
-      failWith?: {
-        type: 'queryUnavailableInEra';
+  stateQuery?: {
+    eraSummaries?: {
+      response: {
+        success: boolean;
+        failWith?: {
+          type: 'queryUnavailableInEra';
+        };
       };
     };
   };
@@ -72,9 +75,7 @@ const handleSubmitTx = async (config: MockOgmiosServerConfig, args: any, send: (
   } else if (config.submitTx?.response.failWith?.type === 'beforeValidityInterval') {
     result = {
       SubmitFail: [
-        {
-          outsideOfValidityInterval: { currentSlot: 23, interval: { invalidBefore: 42, invalidHereafter: null } }
-        }
+        { outsideOfValidityInterval: { currentSlot: 23, interval: { invalidBefore: 42, invalidHereafter: null } } }
       ]
     };
   } else {
@@ -88,7 +89,7 @@ const handleQuery = async (query: string, config: MockOgmiosServerConfig, send: 
   let result: Schema.EraSummary[] | Date | QueryUnavailableInCurrentEraError;
   switch (query) {
     case 'eraSummaries':
-      if (config.timeSettings?.response.success) {
+      if (config.stateQuery?.eraSummaries?.response.success) {
         result = [
           {
             end: { epoch: 74, slot: 1_598_400, time: 31_968_000 },
@@ -101,7 +102,7 @@ const handleQuery = async (query: string, config: MockOgmiosServerConfig, send: 
             start: { epoch: 74, slot: 1_598_400, time: 31_968_000 }
           }
         ];
-      } else if (config.timeSettings?.response.failWith?.type === 'queryUnavailableInEra') {
+      } else if (config.stateQuery?.eraSummaries?.response.failWith?.type === 'queryUnavailableInEra') {
         result = new QueryUnavailableInCurrentEraError('eraSummaries');
       } else {
         throw new Error('Unknown mock response');

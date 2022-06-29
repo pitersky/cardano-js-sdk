@@ -1,10 +1,4 @@
-import {
-  Cardano,
-  NetworkInfo,
-  NetworkInfoProvider,
-  ProtocolParametersRequiredByWallet,
-  TimeSettingsProvider
-} from '@cardano-sdk/core';
+import { Cardano, NetworkInfo, NetworkInfoProvider, ProtocolParametersRequiredByWallet } from '@cardano-sdk/core';
 import { DbSyncProvider } from '../../DbSyncProvider';
 import { GenesisData } from './types';
 import { InMemoryCache, UNLIMITED_CACHE_TTL } from '../../InMemoryCache';
@@ -24,7 +18,7 @@ export interface NetworkInfoProviderDependencies {
   db: Pool;
   cache: InMemoryCache;
   logger?: Logger;
-  timeSettingsProvider: TimeSettingsProvider;
+  stateQuery: Cardano.CardanoNode['StateQuery'];
 }
 export class DbSyncNetworkInfoProvider extends DbSyncProvider implements NetworkInfoProvider {
   #logger: Logger;
@@ -33,11 +27,11 @@ export class DbSyncNetworkInfoProvider extends DbSyncProvider implements Network
   #genesisDataReady: Promise<GenesisData>;
   #epochPollInterval: number;
   #epochPollService: Shutdown | null;
-  #timeSettingsProvider: TimeSettingsProvider;
+  #stateQuery: Cardano.CardanoNode['StateQuery'];
 
   constructor(
     { cardanoNodeConfigPath, epochPollInterval }: NetworkInfoProviderProps,
-    { db, cache, logger = dummyLogger, timeSettingsProvider }: NetworkInfoProviderDependencies
+    { db, cache, logger = dummyLogger, stateQuery }: NetworkInfoProviderDependencies
   ) {
     super(db);
     this.#logger = logger;
@@ -45,7 +39,7 @@ export class DbSyncNetworkInfoProvider extends DbSyncProvider implements Network
     this.#builder = new NetworkInfoBuilder(db, logger);
     this.#genesisDataReady = loadGenesisData(cardanoNodeConfigPath);
     this.#epochPollInterval = epochPollInterval;
-    this.#timeSettingsProvider = timeSettingsProvider;
+    this.#stateQuery = stateQuery;
   }
 
   public async networkInfo(): Promise<NetworkInfo> {
@@ -53,7 +47,7 @@ export class DbSyncNetworkInfoProvider extends DbSyncProvider implements Network
 
     this.#logger.debug('About to query network info data');
 
-    const [liveStake, circulatingSupply, activeStake, totalSupply, timeSettings] = await Promise.all([
+    const [liveStake, circulatingSupply, activeStake, totalSupply, eraSummaries] = await Promise.all([
       this.#cache.get(NetworkInfoCacheKey.LIVE_STAKE, () => this.#builder.queryLiveStake()),
       this.#cache.get(NetworkInfoCacheKey.CIRCULATING_SUPPLY, () => this.#builder.queryCirculatingSupply()),
       this.#cache.get(NetworkInfoCacheKey.ACTIVE_STAKE, () => this.#builder.queryActiveStake(), UNLIMITED_CACHE_TTL),
@@ -62,17 +56,17 @@ export class DbSyncNetworkInfoProvider extends DbSyncProvider implements Network
         () => this.#builder.queryTotalSupply(maxLovelaceSupply),
         UNLIMITED_CACHE_TTL
       ),
-      this.#cache.get(NetworkInfoCacheKey.TIME_SETTINGS, this.#timeSettingsProvider.timeSettings, UNLIMITED_CACHE_TTL)
+      this.#cache.get(NetworkInfoCacheKey.ERA_SUMMARIES, this.#stateQuery.eraSummaries, UNLIMITED_CACHE_TTL)
     ]);
 
     return toNetworkInfo({
       activeStake,
       circulatingSupply,
+      eraSummaries,
       liveStake,
       maxLovelaceSupply,
       networkId,
       networkMagic,
-      timeSettings,
       totalSupply
     });
   }
