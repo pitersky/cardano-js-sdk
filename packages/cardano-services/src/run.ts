@@ -2,8 +2,8 @@
 import * as envalid from 'envalid';
 import { API_URL_DEFAULT, OGMIOS_URL_DEFAULT, RABBITMQ_URL_DEFAULT, ServiceNames, loadHttpServer } from './Program';
 import { CACHE_TTL_DEFAULT } from './InMemoryCache';
+import { EPOCH_POLL_INTERVAL_DEFAULT } from './NetworkInfo';
 import { LogLevel } from 'bunyan';
-import { POLL_INTERVAL_DEFAULT } from './NetworkInfo';
 import { URL } from 'url';
 import { USE_QUEUE_DEFAULT } from './ProgramsCommon';
 import { cacheTtlValidator } from './util/validators';
@@ -16,9 +16,9 @@ const envSpecs = {
   CACHE_TTL: envalid.makeValidator(cacheTtlValidator)(envalid.num({ default: CACHE_TTL_DEFAULT })),
   CARDANO_NODE_CONFIG_PATH: envalid.str({ default: undefined }),
   DB_CONNECTION_STRING: envalid.str({ default: undefined }),
+  EPOCH_POLL_INTERVAL: envalid.num({ default: EPOCH_POLL_INTERVAL_DEFAULT }),
   LOGGER_MIN_SEVERITY: envalid.str({ choices: loggerMethodNames as string[], default: 'info' }),
   OGMIOS_URL: envalid.url({ default: OGMIOS_URL_DEFAULT }),
-  POLL_INTERVAL: envalid.num({ default: POLL_INTERVAL_DEFAULT }),
   RABBITMQ_URL: envalid.url({ default: RABBITMQ_URL_DEFAULT }),
   SERVICE_NAMES: envalid.str({ example: Object.values(ServiceNames).toString() }),
   USE_QUEUE: envalid.bool({ default: USE_QUEUE_DEFAULT })
@@ -32,7 +32,7 @@ void (async () => {
   const rabbitmqUrl = new URL(env.RABBITMQ_URL);
   const cardanoNodeConfigPath = env.CARDANO_NODE_CONFIG_PATH;
   const cacheTtl = env.CACHE_TTL;
-  const pollInterval = env.POLL_INTERVAL;
+  const epochPollInterval = env.EPOCH_POLL_INTERVAL;
   const dbConnectionString = env.DB_CONNECTION_STRING ? new URL(env.DB_CONNECTION_STRING).toString() : undefined;
   const serviceNames = env.SERVICE_NAMES.split(',') as ServiceNames[];
 
@@ -43,9 +43,9 @@ void (async () => {
         cacheTtl,
         cardanoNodeConfigPath,
         dbConnectionString,
+        epochPollInterval,
         loggerMinSeverity: env.LOGGER_MIN_SEVERITY as LogLevel,
         ogmiosUrl,
-        pollInterval,
         rabbitmqUrl,
         useQueue: env.USE_QUEUE
       },

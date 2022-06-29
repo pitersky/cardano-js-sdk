@@ -24,7 +24,7 @@ describe('NetworkInfoHttpService', () => {
   let doNetworkInfoRequest: ReturnType<typeof doServerRequest>;
   let timeSettingsProvider: TimeSettingsProvider;
 
-  const pollInterval = 2 * 1000;
+  const epochPollInterval = 2 * 1000;
   const cache = new InMemoryCache(UNLIMITED_CACHE_TTL);
   const cardanoNodeConfigPath = process.env.CARDANO_NODE_CONFIG_PATH!;
   const db = new Pool({ connectionString: process.env.DB_CONNECTION_STRING, max: 1, min: 1 });
@@ -43,7 +43,7 @@ describe('NetworkInfoHttpService', () => {
       timeSettings: jest.fn(() => Promise.resolve(mockTimeSettings))
     };
     networkInfoProvider = new DbSyncNetworkInfoProvider(
-      { cardanoNodeConfigPath, pollInterval },
+      { cardanoNodeConfigPath, epochPollInterval },
       { cache, db, timeSettingsProvider }
     );
     service = await NetworkInfoHttpService.create({ networkInfoProvider });
@@ -77,7 +77,7 @@ describe('NetworkInfoHttpService', () => {
         expect(cache.getVal(NetworkInfoCacheKey.CURRENT_EPOCH)).toBeUndefined();
         expect(cache.keys().length).toEqual(0);
 
-        await sleep(pollInterval * 2);
+        await sleep(epochPollInterval * 2);
 
         expect(cache.keys().length).toEqual(1);
         expect(cache.getVal(NetworkInfoCacheKey.CURRENT_EPOCH)).toBeDefined();
@@ -142,7 +142,7 @@ describe('NetworkInfoHttpService', () => {
           expect(cache.getVal(NetworkInfoCacheKey.CURRENT_EPOCH)).toBeUndefined();
           expect(cache.keys().length).toEqual(dbSyncQueriesCount + ogmiosQueriesCount);
 
-          await sleep(pollInterval);
+          await sleep(epochPollInterval);
 
           expect(cache.getVal(NetworkInfoCacheKey.CURRENT_EPOCH)).toEqual(currentEpochNo);
           expect(cache.keys().length).toEqual(totalDbQueriesCount + ogmiosQueriesCount);
@@ -158,7 +158,7 @@ describe('NetworkInfoHttpService', () => {
 
             await doNetworkInfoRequest<[], NetworkInfo>(path, []);
 
-            await sleep(pollInterval);
+            await sleep(epochPollInterval);
             expect(cache.keys().length).toEqual(dbSyncQueriesCount + ogmiosQueriesCount + DB_POLL_QUERIES_COUNT);
 
             await ingestDbData(
@@ -168,7 +168,7 @@ describe('NetworkInfoHttpService', () => {
               [greaterEpoch, 58_389_393_484_858, 43_424_552, 55_666, 10_000, greaterEpoch, '2022-05-28', '2022-06-02']
             );
 
-            await sleep(pollInterval);
+            await sleep(epochPollInterval);
             expect(invalidateCacheSpy).toHaveBeenCalledWith([
               NetworkInfoCacheKey.TOTAL_SUPPLY,
               NetworkInfoCacheKey.ACTIVE_STAKE,
@@ -177,7 +177,7 @@ describe('NetworkInfoHttpService', () => {
             expect(cache.getVal(NetworkInfoCacheKey.CURRENT_EPOCH)).toEqual(greaterEpoch);
             expect(cache.keys().length).toEqual(3);
 
-            await sleep(pollInterval);
+            await sleep(epochPollInterval);
           }, db)
         );
       });

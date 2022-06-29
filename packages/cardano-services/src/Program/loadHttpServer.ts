@@ -20,7 +20,7 @@ import pg from 'pg';
 export interface HttpServerOptions extends CommonProgramOptions {
   dbConnectionString?: string;
   cacheTtl: number;
-  pollInterval: number;
+  epochPollInterval: number;
   cardanoNodeConfigPath?: string;
   metricsEnabled?: boolean;
   useQueue?: boolean;
@@ -73,7 +73,10 @@ const serviceMapFactory = (args: ProgramArgs, logger: Logger, cache: InMemoryCac
     return await NetworkInfoHttpService.create({
       logger,
       networkInfoProvider: new DbSyncNetworkInfoProvider(
-        { cardanoNodeConfigPath: args.options.cardanoNodeConfigPath, pollInterval: args.options?.pollInterval },
+        {
+          cardanoNodeConfigPath: args.options.cardanoNodeConfigPath,
+          epochPollInterval: args.options?.epochPollInterval
+        },
         {
           cache,
           db,
