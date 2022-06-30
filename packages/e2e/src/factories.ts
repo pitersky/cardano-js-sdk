@@ -24,6 +24,8 @@ import {
 } from '@cardano-sdk/blockfrost';
 import { CardanoWalletFaucetProvider, FaucetProvider } from './FaucetProvider';
 import { KeyManagement } from '@cardano-sdk/wallet';
+import { LogLevel, createLogger } from 'bunyan';
+import { Logger } from 'ts-log';
 import { createConnectionObject } from '@cardano-ogmios/client';
 import { createStubStakePoolProvider } from '@cardano-sdk/util-dev';
 import { ogmiosTxSubmitProvider } from '@cardano-sdk/ogmios';
@@ -63,6 +65,7 @@ export const txSubmitProviderFactory = new ProviderFactory<TxSubmitProvider>();
 export const utxoProviderFactory = new ProviderFactory<UtxoProvider>();
 export const walletProviderFactory = new ProviderFactory<WalletProvider>();
 export const stakePoolProviderFactory = new ProviderFactory<StakePoolProvider>();
+export const loggerFactory = new ProviderFactory<Logger>();
 
 // Faucet providers
 faucetProviderFactory.register('cardano-wallet', CardanoWalletFaucetProvider.create);
@@ -256,3 +259,18 @@ keyManagementFactory.register('trezor', async (params: any): Promise<KeyManageme
     })
   );
 });
+
+// Logger
+
+/**
+ * Gets the logger instance.
+ *
+ * @param severity The minimum severity of the log messages that will be logged.
+ * @returns The Logger instance.
+ */
+export const getLogger = function (severity: string): Logger {
+  return createLogger({
+    level: severity as LogLevel,
+    name: 'e2e tests'
+  });
+};
