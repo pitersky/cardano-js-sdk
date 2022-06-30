@@ -9,8 +9,7 @@ import {
   RewardsProvider,
   StakePoolProvider,
   TxSubmitProvider,
-  UtxoProvider,
-  WalletProvider
+  UtxoProvider
 } from '@cardano-sdk/core';
 import {
   BlockFrostAPI,
@@ -19,8 +18,7 @@ import {
   blockfrostNetworkInfoProvider,
   blockfrostRewardsProvider,
   blockfrostTxSubmitProvider,
-  blockfrostUtxoProvider,
-  blockfrostWalletProvider
+  blockfrostUtxoProvider
 } from '@cardano-sdk/blockfrost';
 import { CardanoWalletFaucetProvider, FaucetProvider } from './FaucetProvider';
 import { KeyManagement } from '@cardano-sdk/wallet';
@@ -64,7 +62,6 @@ export const networkInfoProviderFactory = new ProviderFactory<NetworkInfoProvide
 export const rewardsProviderFactory = new ProviderFactory<RewardsProvider>();
 export const txSubmitProviderFactory = new ProviderFactory<TxSubmitProvider>();
 export const utxoProviderFactory = new ProviderFactory<UtxoProvider>();
-export const walletProviderFactory = new ProviderFactory<WalletProvider>();
 export const stakePoolProviderFactory = new ProviderFactory<StakePoolProvider>();
 export const loggerFactory = new ProviderFactory<Logger>();
 
@@ -176,19 +173,6 @@ utxoProviderFactory.register(
   async (): Promise<UtxoProvider> =>
     new Promise<UtxoProvider>(async (resolve) => {
       resolve(blockfrostUtxoProvider(await getBlockfrostApi()));
-    })
-);
-
-// Wallet providers
-walletProviderFactory.register(
-  blockfrostWalletProvider.name,
-  async (params: any): Promise<WalletProvider> =>
-    new Promise<WalletProvider>(async (resolve) => {
-      if (params.isTestnet === undefined) throw new Error(BLOCKFROST_MISSING_FLAG);
-
-      if (params.projectId === undefined) throw new Error(BLOCKFROST_MISSING_PROJECT_ID);
-
-      resolve(blockfrostWalletProvider(await getBlockfrostApi(params.isTestnet, params.projectId)));
     })
 );
 
