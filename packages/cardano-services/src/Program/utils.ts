@@ -9,9 +9,9 @@ import pRetry, { FailedAttemptError } from 'p-retry';
 export const RETRY_BACKOFF_FACTOR_DEFAULT = 1.1;
 export const RETRY_BACKOFF_MAX_TIMEOUT_DEFAULT = 60 * 1000;
 
-type RetryBackOffConfig = {
-  retryBackOffFactor: number;
-  retryBackoffMaxTimeout: number;
+type RetryBackoffConfig = {
+  factor: number;
+  maxRetryTime: number;
 };
 
 export const onFailedAttemptFor =
@@ -30,27 +30,28 @@ export const onFailedAttemptFor =
 
 export const resolveDnsSrvWithExponentialBackoff = async (
   hostname: string,
-  { retryBackoffMaxTimeout, retryBackOffFactor }: RetryBackOffConfig,
+  { factor, maxRetryTime }: RetryBackoffConfig,
   logger: Logger
 ) =>
   await pRetry(
     async () => {
+      // Shall we grab the first one always?
       const [record] = await dns.promises.resolveSrv(hostname);
       return record;
     },
     {
-      factor: retryBackOffFactor,
-      maxRetryTime: retryBackoffMaxTimeout,
+      factor,
+      maxRetryTime,
       onFailedAttempt: onFailedAttemptFor(`Establishing connection to ${hostname}`, logger)
     }
   );
 
 export const getSrvPool = async (
   { host, database, password, user }: ClientConfig,
-  backOffConfig: RetryBackOffConfig,
+  retryConfig: RetryBackoffConfig,
   logger: Logger
 ): Promise<Pool> => {
-  const srvRecord = await resolveDnsSrvWithExponentialBackoff(host!, backOffConfig, logger);
+  const srvRecord = await resolveDnsSrvWithExponentialBackoff(host!, retryConfig, logger);
   let pool: Pool = new Pool({ database, host, password, port: srvRecord.port, user });
 
   return new Proxy<Pool>({} as Pool, {
@@ -60,7 +61,7 @@ export const getSrvPool = async (
         return (args: string | QueryConfig, values?: any) =>
           pool.query(args, values).catch(async (error) => {
             if (error.code && ['ENOTFOUND', 'ECONNREFUSED'].includes(error.code)) {
-              const record = await resolveDnsSrvWithExponentialBackoff(host!, backOffConfig, logger);
+              const record = await resolveDnsSrvWithExponentialBackoff(host!, retryConfig, logger);
               pool = new Pool({ database, host, password, port: record.port, user });
               return await pool.query(args, values);
             }
@@ -79,7 +80,7 @@ export const getPool = async (logger: Logger, options?: HttpServerOptions): Prom
   if (options?.dbConnectionString && options.postgresSrvHostname)
     throw new InvalidArgsCombination(options.dbConnectionString, options.postgresSrvHostname);
   if (options?.dbConnectionString) return new Pool({ connectionString: options.dbConnectionString });
-  // TODO: optimize passed options -> make options mandatory as it is not optional at all
+  // TODO: optimize passed options -> 'options' is required by default, no need to check it .? everywhere
   if (options?.postgresSrvHostname && options?.postgresUser && options.postgresName && options.postgresPassword) {
     return getSrvPool(
       {
@@ -88,7 +89,7 @@ export const getPool = async (logger: Logger, options?: HttpServerOptions): Prom
         password: options.postgresPassword,
         user: options.postgresUser
       },
-      { retryBackOffFactor: options.retryBackoffFactor, retryBackoffMaxTimeout: options.retryBackoffMaxTimeout },
+      { factor: options.retryBackoffFactor, maxRetryTime: options.retryBackoffMaxTimeout },
       logger
     );
   }
