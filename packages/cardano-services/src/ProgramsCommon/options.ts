@@ -10,3 +10,10 @@ export interface CommonProgramOptions {
   ogmiosUrl?: URL;
   rabbitmqUrl?: URL;
 }
+
+export interface SrvProgramOptions {
+  postgresSrvHostname?: string;
+  postgresName?: string;
+  postgresUser?: string;
+  postgresPassword?: string;
+}
