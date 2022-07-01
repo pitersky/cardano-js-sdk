@@ -29,20 +29,20 @@ export const onFailedAttemptFor =
   };
 
 export const resolveDnsSrvWithExponentialBackoff = async (
-  servicename: string,
+  serviceName: string,
   { factor, maxRetryTime }: RetryBackoffConfig,
   logger: Logger
 ) =>
   await pRetry(
     async () => {
       // Shall we grab the first one always?
-      const [record] = await dns.promises.resolveSrv(servicename);
+      const [record] = await dns.promises.resolveSrv(serviceName);
       return record;
     },
     {
       factor,
       maxRetryTime,
-      onFailedAttempt: onFailedAttemptFor(`Establishing connection to ${servicename}`, logger)
+      onFailedAttempt: onFailedAttemptFor(`Establishing connection to ${serviceName}`, logger)
     }
   );
 
@@ -77,15 +77,15 @@ export const getSrvPool = async (
 };
 
 export const getPool = async (logger: Logger, options?: HttpServerOptions): Promise<Pool | undefined> => {
-  if (options?.dbConnectionString && options.postgresSrvHostname)
-    throw new InvalidArgsCombination(options.dbConnectionString, options.postgresSrvHostname);
+  if (options?.dbConnectionString && options.postgresSrvName)
+    throw new InvalidArgsCombination(options.dbConnectionString, options.postgresSrvName);
   if (options?.dbConnectionString) return new Pool({ connectionString: options.dbConnectionString });
   // TODO: optimize passed options -> 'options' is required by default, no need to check it .? everywhere
-  if (options?.postgresSrvHostname && options?.postgresUser && options.postgresName && options.postgresPassword) {
+  if (options?.postgresSrvName && options?.postgresUser && options.postgresName && options.postgresPassword) {
     return getSrvPool(
       {
         database: options.postgresName,
-        host: options.postgresSrvHostname,
+        host: options.postgresSrvName,
         password: options.postgresPassword,
         user: options.postgresUser
       },

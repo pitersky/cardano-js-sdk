@@ -115,7 +115,7 @@ commonOptions(
     RETRY_BACKOFF_MAX_TIMEOUT_DEFAULT
   )
   .option('--use-queue', ProgramOptionDescriptions.UseQueue, () => true, USE_QUEUE_DEFAULT)
-  .option('--postgres-srv-hostname <postgresSrvHostname>', ProgramOptionDescriptions.DbConnection)
+  .option('--postgres-srv-name <postgresSrvName>', ProgramOptionDescriptions.DbConnection)
   .option('--postgres-name <postgresName>', ProgramOptionDescriptions.DbConnection)
   .option('--postgres-uid <postgresUser>', ProgramOptionDescriptions.DbConnection)
   .option('--postgres-password <postgresPassword>', ProgramOptionDescriptions.DbConnection)
