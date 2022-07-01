@@ -56,6 +56,7 @@
     "@types/express-prometheus-middleware": "^1.2.1",
     "@types/lodash": "^4.14.182",
     "@types/pg": "^8.6.5",
+    "@cardano-ogmios/client": "5.4.0",
     "axios": "^0.27.2",
     "cbor": "^8.1.0",
     "dockerode": "^3.3.1",

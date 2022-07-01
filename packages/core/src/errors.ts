@@ -48,14 +48,3 @@ export class InvalidStringError extends CustomError {
     super(`Invalid string: "${expectation}"`);
   }
 }
-
-export enum CardanoNodeFailure {
-  ConnectionError = 'CONNECTION_ERROR',
-  Unknown = 'UNKNOWN'
-}
-
-export class CardanoNodeError<InnerError = unknown> extends CustomError {
-  constructor(public reason: CardanoNodeFailure, public innerError?: InnerError, public detail?: string) {
-    super(formatMessage(reason, detail));
-  }
-}

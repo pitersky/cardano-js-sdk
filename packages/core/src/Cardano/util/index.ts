@@ -1,3 +1,4 @@
+export * from './cardanoNodeErrors';
 export * from './coalesceValueQuantities';
 export * from './computeMinUtxoValue';
 export * from './computeImplicitCoin';

@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`cardanoNode eraSummaries success resolves if successful 1`] = `
+exports[`CardanoNode initialized eraSummaries success resolves if successful 1`] = `
 Array [
   Object {
     "parameters": Object {
@@ -24,3 +24,5 @@ Array [
   },
 ]
 `;
+
+exports[`CardanoNode initialized systemStart success resolves if successful 1`] = `2017-09-23T21:44:51.000Z`;

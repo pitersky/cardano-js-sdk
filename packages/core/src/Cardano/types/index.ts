@@ -18,6 +18,7 @@ export * from './AuxiliaryData';
 export * from './CardanoNode';
 export * from './Key';
 export * from './TxSubmissionErrors';
+export * from './CardanoNodeErrors';
 export * as NativeScriptType from './NativeScriptType';
 
 export type ProtocolParametersAlonzo = OptionalUndefined<

@@ -1,5 +1,5 @@
 /* eslint-disable sonarjs/no-duplicate-string */
-import { QueryUnavailableInCurrentEraError, Schema } from '@cardano-ogmios/client';
+import { Schema, UnknownResultError } from '@cardano-ogmios/client';
 import { Server, createServer } from 'http';
 import WebSocket from 'ws';
 
@@ -56,6 +56,14 @@ export interface MockOgmiosServerConfig {
       response: {
         success: boolean;
         failWith?: {
+          type: 'unknownResultError';
+        };
+      };
+    };
+    systemStart?: {
+      response: {
+        success: boolean;
+        failWith?: {
           type: 'queryUnavailableInEra';
         };
       };
@@ -86,7 +94,7 @@ const handleSubmitTx = async (config: MockOgmiosServerConfig, args: any, send: (
 };
 
 const handleQuery = async (query: string, config: MockOgmiosServerConfig, send: (result: unknown) => void) => {
-  let result: Schema.EraSummary[] | Date | QueryUnavailableInCurrentEraError;
+  let result: Schema.EraSummary[] | Date | 'QueryUnavailableInCurrentEra' | UnknownResultError;
   switch (query) {
     case 'eraSummaries':
       if (config.stateQuery?.eraSummaries?.response.success) {
@@ -102,14 +110,20 @@ const handleQuery = async (query: string, config: MockOgmiosServerConfig, send: 
             start: { epoch: 74, slot: 1_598_400, time: 31_968_000 }
           }
         ];
-      } else if (config.stateQuery?.eraSummaries?.response.failWith?.type === 'queryUnavailableInEra') {
-        result = new QueryUnavailableInCurrentEraError('eraSummaries');
+      } else if (config.stateQuery?.eraSummaries?.response.failWith?.type === 'unknownResultError') {
+        result = new UnknownResultError('');
       } else {
         throw new Error('Unknown mock response');
       }
       break;
     case 'systemStart':
-      result = new Date(1_506_203_091_000);
+      if (config.stateQuery?.systemStart?.response.success) {
+        result = new Date(1_506_203_091_000);
+      } else if (config.stateQuery?.systemStart?.response.failWith?.type === 'queryUnavailableInEra') {
+        result = 'QueryUnavailableInCurrentEra';
+      } else {
+        throw new Error('Unknown mock response');
+      }
       break;
     default:
       throw new Error('Query not mocked');

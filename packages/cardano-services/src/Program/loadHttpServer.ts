@@ -1,5 +1,6 @@
 /* eslint-disable complexity */
 /* eslint-disable sonarjs/cognitive-complexity */
+import { CardanoNode, ogmiosTxSubmitProvider, urlToConnectionConfig } from '@cardano-sdk/ogmios';
 import { ChainHistoryHttpService, DbSyncChainHistoryProvider } from '../ChainHistory';
 import { CommonProgramOptions } from '../ProgramsCommon';
 import { DbSyncNetworkInfoProvider, NetworkInfoHttpService } from '../NetworkInfo';
@@ -13,7 +14,6 @@ import { ProgramOptionDescriptions } from './ProgramOptionDescriptions';
 import { RabbitMqTxSubmitProvider } from '@cardano-sdk/rabbitmq';
 import { ServiceNames } from './ServiceNames';
 import { TxSubmitHttpService } from '../TxSubmit';
-import { cardanoNode, ogmiosTxSubmitProvider, urlToConnectionConfig } from '@cardano-sdk/ogmios';
 import Logger, { createLogger } from 'bunyan';
 import pg from 'pg';
 
@@ -75,14 +75,10 @@ const serviceMapFactory = (args: ProgramArgs, logger: Logger, cache: InMemoryCac
       networkInfoProvider: new DbSyncNetworkInfoProvider(
         {
           cardanoNodeConfigPath: args.options.cardanoNodeConfigPath,
-          epochPollInterval: args.options?.epochPollInterval
+          epochPollInterval: args.options?.epochPollInterval,
+          ogmiosConnectionConfig: urlToConnectionConfig(args.options.ogmiosUrl)
         },
-        {
-          cache,
-          db,
-          logger,
-          stateQuery: cardanoNode(urlToConnectionConfig(args.options.ogmiosUrl), logger).StateQuery
-        }
+        { cache, cardanoNode: new CardanoNode(logger), db, logger }
       )
     });
   },

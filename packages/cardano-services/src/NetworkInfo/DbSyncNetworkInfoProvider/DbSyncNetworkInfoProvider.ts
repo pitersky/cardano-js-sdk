@@ -1,4 +1,5 @@
 import { Cardano, NetworkInfo, NetworkInfoProvider, ProtocolParametersRequiredByWallet } from '@cardano-sdk/core';
+import { ConnectionConfig } from '@cardano-ogmios/client';
 import { DbSyncProvider } from '../../DbSyncProvider';
 import { GenesisData } from './types';
 import { InMemoryCache, UNLIMITED_CACHE_TTL } from '../../InMemoryCache';
@@ -13,12 +14,13 @@ import { loadGenesisData, toGenesisParams, toLedgerTip, toNetworkInfo, toWalletP
 export interface NetworkInfoProviderProps {
   cardanoNodeConfigPath: string;
   epochPollInterval: number;
+  ogmiosConnectionConfig: ConnectionConfig;
 }
 export interface NetworkInfoProviderDependencies {
   db: Pool;
   cache: InMemoryCache;
   logger?: Logger;
-  stateQuery: Cardano.CardanoNode['StateQuery'];
+  cardanoNode: Cardano.CardanoNode;
 }
 export class DbSyncNetworkInfoProvider extends DbSyncProvider implements NetworkInfoProvider {
   #logger: Logger;
@@ -27,11 +29,12 @@ export class DbSyncNetworkInfoProvider extends DbSyncProvider implements Network
   #genesisDataReady: Promise<GenesisData>;
   #epochPollInterval: number;
   #epochPollService: Shutdown | null;
-  #stateQuery: Cardano.CardanoNode['StateQuery'];
+  #cardanoNode: Cardano.CardanoNode;
+  #ogmiosConnectionConfig: ConnectionConfig;
 
   constructor(
-    { cardanoNodeConfigPath, epochPollInterval }: NetworkInfoProviderProps,
-    { db, cache, logger = dummyLogger, stateQuery }: NetworkInfoProviderDependencies
+    { cardanoNodeConfigPath, epochPollInterval, ogmiosConnectionConfig }: NetworkInfoProviderProps,
+    { db, cache, logger = dummyLogger, cardanoNode }: NetworkInfoProviderDependencies
   ) {
     super(db);
     this.#logger = logger;
@@ -39,7 +42,8 @@ export class DbSyncNetworkInfoProvider extends DbSyncProvider implements Network
     this.#builder = new NetworkInfoBuilder(db, logger);
     this.#genesisDataReady = loadGenesisData(cardanoNodeConfigPath);
     this.#epochPollInterval = epochPollInterval;
-    this.#stateQuery = stateQuery;
+    this.#cardanoNode = cardanoNode;
+    this.#ogmiosConnectionConfig = ogmiosConnectionConfig;
   }
 
   public async networkInfo(): Promise<NetworkInfo> {
@@ -56,7 +60,7 @@ export class DbSyncNetworkInfoProvider extends DbSyncProvider implements Network
         () => this.#builder.queryTotalSupply(maxLovelaceSupply),
         UNLIMITED_CACHE_TTL
       ),
-      this.#cache.get(NetworkInfoCacheKey.ERA_SUMMARIES, this.#stateQuery.eraSummaries, UNLIMITED_CACHE_TTL)
+      this.#cache.get(NetworkInfoCacheKey.ERA_SUMMARIES, () => this.#cardanoNode.eraSummaries(), UNLIMITED_CACHE_TTL)
     ]);
 
     return toNetworkInfo({
@@ -87,6 +91,7 @@ export class DbSyncNetworkInfoProvider extends DbSyncProvider implements Network
   }
 
   async start(): Promise<void> {
+    await this.#cardanoNode.initialize(this.#ogmiosConnectionConfig);
     if (!this.#epochPollService)
       this.#epochPollService = epochPollService(
         this.#cache,
@@ -99,5 +104,6 @@ export class DbSyncNetworkInfoProvider extends DbSyncProvider implements Network
     this.#epochPollService?.shutdown();
     this.#epochPollService = null;
     this.#cache.shutdown();
+    this.#cardanoNode.shutdown();
   }
 }

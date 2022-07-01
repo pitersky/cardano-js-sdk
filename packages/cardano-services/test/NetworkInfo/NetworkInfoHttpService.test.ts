@@ -22,14 +22,14 @@ describe('NetworkInfoHttpService', () => {
   let apiUrlBase: string;
   let config: HttpServerConfig;
   let doNetworkInfoRequest: ReturnType<typeof doServerRequest>;
-  let stateQuery: Cardano.CardanoNode['StateQuery'];
+  let cardanoNode: Cardano.CardanoNode;
 
   const epochPollInterval = 2 * 1000;
   const cache = new InMemoryCache(UNLIMITED_CACHE_TTL);
   const cardanoNodeConfigPath = process.env.CARDANO_NODE_CONFIG_PATH!;
   const db = new Pool({ connectionString: process.env.DB_CONNECTION_STRING, max: 1, min: 1 });
 
-  const mockEraSummaries = [
+  const mockEraSummaries: Cardano.EraSummary[] = [
     { parameters: { epochLength: 21_600, slotLength: 20_000 }, start: { slot: 0, time: new Date(1_563_999_616_000) } },
     {
       parameters: { epochLength: 432_000, slotLength: 1000 },
@@ -41,10 +41,15 @@ describe('NetworkInfoHttpService', () => {
     port = await getPort();
     config = { listen: { port } };
     apiUrlBase = `http://localhost:${port}/network-info`;
-    stateQuery = { eraSummaries: jest.fn(() => Promise.resolve(mockEraSummaries)) };
+    cardanoNode = {
+      eraSummaries: jest.fn(() => Promise.resolve(mockEraSummaries)),
+      initialize: jest.fn(() => Promise.resolve()),
+      shutdown: jest.fn(() => Promise.resolve()),
+      systemStart: jest.fn(() => Promise.resolve(new Date(1_563_999_616_000)))
+    };
     networkInfoProvider = new DbSyncNetworkInfoProvider(
-      { cardanoNodeConfigPath, epochPollInterval },
-      { cache, db, stateQuery }
+      { cardanoNodeConfigPath, epochPollInterval, ogmiosConnectionConfig: {} },
+      { cache, cardanoNode, db }
     );
     service = await NetworkInfoHttpService.create({ networkInfoProvider });
     httpServer = new HttpServer(config, { services: [service] });
@@ -120,7 +125,7 @@ describe('NetworkInfoHttpService', () => {
           await doNetworkInfoRequest<[], NetworkInfo>(path, []);
 
           expect(dbConnectionQuerySpy).toHaveBeenCalledTimes(dbSyncQueriesCount);
-          expect(stateQuery.eraSummaries).toHaveBeenCalledTimes(1);
+          expect(cardanoNode.eraSummaries).toHaveBeenCalledTimes(1);
           expect(cache.keys().length).toEqual(dbSyncQueriesCount + stateQueriesCount);
         });
 
@@ -131,7 +136,7 @@ describe('NetworkInfoHttpService', () => {
 
           await doNetworkInfoRequest<[], NetworkInfo>(path, []);
           expect(dbConnectionQuerySpy).toBeCalledTimes(dbSyncQueriesCount * 2);
-          expect(stateQuery.eraSummaries).toHaveBeenCalledTimes(2);
+          expect(cardanoNode.eraSummaries).toHaveBeenCalledTimes(2);
         });
 
         it('should not invalidate the epoch values from the cache if there is no epoch rollover', async () => {
@@ -147,7 +152,7 @@ describe('NetworkInfoHttpService', () => {
           expect(cache.getVal(NetworkInfoCacheKey.CURRENT_EPOCH)).toEqual(currentEpochNo);
           expect(cache.keys().length).toEqual(totalDbQueriesCount + stateQueriesCount);
           expect(dbConnectionQuerySpy).toBeCalledTimes(totalDbQueriesCount);
-          expect(stateQuery.eraSummaries).toHaveBeenCalledTimes(1);
+          expect(cardanoNode.eraSummaries).toHaveBeenCalledTimes(1);
           expect(invalidateCacheSpy).not.toHaveBeenCalled();
         });
 
