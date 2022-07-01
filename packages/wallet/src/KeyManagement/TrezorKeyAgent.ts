@@ -1,8 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { AuthenticationError, TransportError } from './errors';
-import { Cardano, NotImplementedError, coreToCsl } from '@cardano-sdk/core';
-import { CardanoKeyConst, txToTrezor } from './util';
 import {
+  AccountDerivationPathDefaults,
   CommunicationType,
   KeyAgentType,
   SerializableTrezorKeyAgentData,
@@ -10,8 +8,11 @@ import {
   SignTransactionOptions,
   TrezorConfig
 } from './types';
+import { AuthenticationError, TransportError } from './errors';
+import { Cardano, NotImplementedError, coreToCsl } from '@cardano-sdk/core';
 import { KeyAgentBase } from './KeyAgentBase';
 import { TxInternals } from '../Transaction';
+import { txToTrezor } from './util';
 import TrezorConnect, { Features } from 'trezor-connect';
 
 export interface TrezorKeyAgentProps extends Omit<SerializableTrezorKeyAgentData, '__typename'> {
@@ -20,6 +21,8 @@ export interface TrezorKeyAgentProps extends Omit<SerializableTrezorKeyAgentData
 
 export interface GetTrezorXpubProps {
   accountIndex: number;
+  purpose: number;
+  coinType: number;
 }
 
 export interface CreateTrezorKeyAgentProps {
@@ -27,6 +30,8 @@ export interface CreateTrezorKeyAgentProps {
   accountIndex?: number;
   protocolMagic: Cardano.NetworkMagic;
   trezorConfig: TrezorConfig;
+  purpose?: number;
+  coinType?: number;
 }
 
 const transportTypedError = (error?: any) =>
@@ -94,10 +99,10 @@ export class TrezorKeyAgent extends KeyAgentBase {
   /**
    * @throws AuthenticationError
    */
-  static async getXpub({ accountIndex }: GetTrezorXpubProps): Promise<Cardano.Bip32PublicKey> {
+  static async getXpub({ accountIndex, purpose, coinType }: GetTrezorXpubProps): Promise<Cardano.Bip32PublicKey> {
     try {
       await TrezorKeyAgent.checkDeviceConnection();
-      const derivationPath = `m/${CardanoKeyConst.PURPOSE}'/${CardanoKeyConst.COIN_TYPE}'/${accountIndex}'`;
+      const derivationPath = `m/${purpose}'/${coinType}'/${accountIndex}'`;
       const extendedPublicKey = await TrezorConnect.cardanoGetPublicKey({
         path: derivationPath,
         showOnTrezor: true
@@ -118,11 +123,15 @@ export class TrezorKeyAgent extends KeyAgentBase {
     networkId,
     accountIndex = 0,
     protocolMagic,
-    trezorConfig
+    trezorConfig,
+    purpose,
+    coinType
   }: CreateTrezorKeyAgentProps) {
     const isTrezorInitialized = await TrezorKeyAgent.initializeTrezorTransport(trezorConfig);
     const extendedAccountPublicKey = await TrezorKeyAgent.getXpub({
-      accountIndex
+      accountIndex,
+      coinType: coinType || AccountDerivationPathDefaults.CoinType,
+      purpose: purpose || AccountDerivationPathDefaults.Purpose
     });
     return new TrezorKeyAgent({
       accountIndex,

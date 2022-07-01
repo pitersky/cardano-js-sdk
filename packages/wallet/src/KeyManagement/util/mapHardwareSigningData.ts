@@ -3,10 +3,17 @@
 /* eslint-disable sonarjs/cognitive-complexity,  max-depth, max-statements, complexity */
 import * as ledger from '@cardano-foundation/ledgerjs-hw-app-cardano';
 import * as trezor from 'trezor-connect';
-import { BIP32Path, GroupedAddress, ResolveInputAddress } from '../types';
+import {
+  AccountDerivationPath,
+  AccountDerivationPathDefaults,
+  AddressType,
+  BIP32Path,
+  GroupedAddress,
+  ResolveInputAddress
+} from '../types';
 import { CSL, Cardano, cslToCore } from '@cardano-sdk/core';
-import { CardanoKeyConst, harden } from '../util';
 import { HwMappingError } from '../errors';
+import { harden } from '../util';
 import { isNotNil } from '@cardano-sdk/util';
 import concat from 'lodash/concat';
 import uniq from 'lodash/uniq';
@@ -51,8 +58,10 @@ export interface TrezorCertificates {
 
 export interface ChangeAddressType {
   isDeviceOwned: boolean;
-  changeAddressIndex: number;
-  changeAddressRole: number;
+  addressDerivationPath: AccountDerivationPath & {
+    type: AddressType;
+    index: number;
+  };
 }
 
 const sortTokensCanonically = (tokens: trezor.CardanoToken[] | ledger.Token[]) => {
@@ -89,17 +98,24 @@ const bytesToIp = (bytes?: Uint8Array) => {
   return null;
 };
 
-const checkIsChangeAddress = (knownAddresses: GroupedAddress[], outputAddress: Buffer): ChangeAddressType => {
-  let changeAddressIndex = 0;
-  let changeAddressRole = 0;
-  const isDeviceOwned = knownAddresses.some(({ address, index, type }) => {
-    changeAddressIndex = index;
-    changeAddressRole = type;
+const checkIsChangeAddress = (
+  knownAddresses: GroupedAddress[],
+  outputAddress: Buffer,
+  accountIndex: number
+): ChangeAddressType => {
+  let addressDerivationPath = {
+    accountIndex,
+    coinType: AccountDerivationPathDefaults.CoinType,
+    index: 0,
+    purpose: AccountDerivationPathDefaults.Purpose,
+    type: 0
+  };
+  const isDeviceOwned = knownAddresses.some(({ address, derivationPath }) => {
+    addressDerivationPath = derivationPath;
     return address.toString() === ledger.utils.bech32_encodeAddress(outputAddress);
   });
   return {
-    changeAddressIndex,
-    changeAddressRole,
+    addressDerivationPath,
     isDeviceOwned
   };
 };
@@ -125,11 +141,11 @@ const prepareTrezorInputs = async (
       const knownAddress = knownAddresses.find(({ address }) => address === paymentAddress);
       if (knownAddress) {
         paymentKeyPath = [
-          harden(CardanoKeyConst.PURPOSE),
-          harden(CardanoKeyConst.COIN_TYPE),
-          harden(knownAddress.accountIndex),
-          knownAddress.type,
-          knownAddress.index
+          harden(knownAddress.derivationPath.purpose),
+          harden(knownAddress.derivationPath.coinType),
+          harden(knownAddress.derivationPath.accountIndex),
+          knownAddress.derivationPath.type,
+          knownAddress.derivationPath.index
         ];
         trezorInput = {
           ...trezorInput,
@@ -177,17 +193,15 @@ const prepareTrezorOutputs = (
       }
     }
     const outputAddress = Buffer.from(output.address().to_bytes());
-    const { isDeviceOwned, changeAddressIndex, changeAddressRole } = checkIsChangeAddress(
-      knownAddresses,
-      outputAddress
-    );
+    const { isDeviceOwned, addressDerivationPath } = checkIsChangeAddress(knownAddresses, outputAddress, accountIndex);
     const destination = isDeviceOwned
       ? {
           addressParameters: {
             addressType: trezor.CardanoAddressType.BASE,
             // eslint-disable-next-line max-len
-            path: `m/${CardanoKeyConst.PURPOSE}'/${CardanoKeyConst.COIN_TYPE}'/${accountIndex}'/${changeAddressRole}/${changeAddressIndex}`,
-            stakingPath: `m/${CardanoKeyConst.PURPOSE}'/${CardanoKeyConst.COIN_TYPE}'/${accountIndex}'/2/0`
+            path: `m/${addressDerivationPath.purpose}'/${addressDerivationPath.coinType}'/${addressDerivationPath.accountIndex}'/${addressDerivationPath.type}/${addressDerivationPath.index}`,
+            // eslint-disable-next-line max-len
+            stakingPath: `m/${addressDerivationPath.purpose}'/${addressDerivationPath.coinType}'/${addressDerivationPath.accountIndex}'/2/0`
           }
         }
       : {
@@ -436,11 +450,11 @@ const prepareLedgerInputs = async (
       const knownAddress = knownAddresses.find(({ address }) => address === paymentAddress);
       if (knownAddress) {
         paymentKeyPath = [
-          harden(CardanoKeyConst.PURPOSE),
-          harden(CardanoKeyConst.COIN_TYPE),
-          harden(knownAddress.accountIndex),
-          knownAddress.type,
-          knownAddress.index
+          harden(knownAddress.derivationPath.purpose),
+          harden(knownAddress.derivationPath.coinType),
+          harden(knownAddress.derivationPath.accountIndex),
+          knownAddress.derivationPath.type,
+          knownAddress.derivationPath.index
         ];
       }
     }
@@ -488,25 +502,22 @@ const prepareLedgerOutputs = (
       }
     }
     const outputAddress = Buffer.from(output.address().to_bytes());
-    const { isDeviceOwned, changeAddressIndex, changeAddressRole } = checkIsChangeAddress(
-      knownAddresses,
-      outputAddress
-    );
+    const { isDeviceOwned, addressDerivationPath } = checkIsChangeAddress(knownAddresses, outputAddress, accountIndex);
     const destination: ledger.TxOutputDestination = isDeviceOwned
       ? {
           params: {
             params: {
               spendingPath: [
-                harden(CardanoKeyConst.PURPOSE),
-                harden(CardanoKeyConst.COIN_TYPE),
-                harden(accountIndex),
-                changeAddressRole,
-                changeAddressIndex
+                harden(addressDerivationPath.purpose),
+                harden(addressDerivationPath.coinType),
+                harden(addressDerivationPath.accountIndex),
+                addressDerivationPath.type,
+                addressDerivationPath.index
               ],
               stakingPath: [
-                harden(CardanoKeyConst.PURPOSE),
-                harden(CardanoKeyConst.COIN_TYPE),
-                harden(accountIndex),
+                harden(addressDerivationPath.purpose),
+                harden(addressDerivationPath.coinType),
+                harden(addressDerivationPath.accountIndex),
                 2,
                 0
               ]
@@ -834,12 +845,13 @@ export const txToLedger = async ({
   knownAddresses,
   protocolMagic
 }: TxToLedgerProps): Promise<ledger.SignTransactionRequest> => {
-  const rewardAccount = knownAddresses[0].rewardAccount;
+  const accountAddress = knownAddresses[0];
+  const rewardAccount = accountAddress.rewardAccount;
   const rewardAccountKeyHash = getRewardAccountKeyHash(rewardAccount);
   const rewardAccountKeyPath = [
-    harden(CardanoKeyConst.PURPOSE),
-    harden(CardanoKeyConst.COIN_TYPE),
-    harden(accountIndex),
+    harden(accountAddress.derivationPath.purpose),
+    harden(accountAddress.derivationPath.coinType),
+    harden(accountAddress.derivationPath.accountIndex),
     2,
     0
   ];
@@ -926,12 +938,13 @@ export const txToTrezor = async ({
   knownAddresses,
   protocolMagic
 }: TxToTrezorProps): Promise<trezor.CardanoSignTransaction> => {
-  const rewardAccount = knownAddresses[0].rewardAccount;
+  const accountAddress = knownAddresses[0];
+  const rewardAccount = accountAddress.rewardAccount;
   const rewardAccountKeyHash = getRewardAccountKeyHash(rewardAccount);
   const rewardAccountKeyPath = [
-    harden(CardanoKeyConst.PURPOSE),
-    harden(CardanoKeyConst.COIN_TYPE),
-    harden(accountIndex),
+    harden(accountAddress.derivationPath.purpose),
+    harden(accountAddress.derivationPath.coinType),
+    harden(accountAddress.derivationPath.accountIndex),
     2,
     0
   ];

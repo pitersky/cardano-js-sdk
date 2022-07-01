@@ -1,8 +1,9 @@
 import {
-  AccountAddressDerivationPath,
-  AccountKeyDerivationPath,
+  AccountDerivationPathDefaults,
+  AddressDerivationPath,
   GroupedAddress,
   KeyAgent,
+  KeyDerivationPath,
   KeyRole,
   SerializableKeyAgentData,
   SignBlobResult,
@@ -34,7 +35,7 @@ export abstract class KeyAgentBase implements KeyAgent {
   get accountIndex(): number {
     return this.serializableData.accountIndex;
   }
-  abstract signBlob(derivationPath: AccountKeyDerivationPath, blob: Cardano.util.HexBlob): Promise<SignBlobResult>;
+  abstract signBlob(derivationPath: KeyDerivationPath, blob: Cardano.util.HexBlob): Promise<SignBlobResult>;
   abstract exportRootPrivateKey(): Promise<Cardano.Bip32PrivateKey>;
   abstract signTransaction(
     txInternals: TxInternals,
@@ -49,8 +50,10 @@ export abstract class KeyAgentBase implements KeyAgent {
   /**
    * See https://github.com/cardano-foundation/CIPs/tree/master/CIP-1852#specification
    */
-  async deriveAddress({ index, type }: AccountAddressDerivationPath): Promise<GroupedAddress> {
-    const knownAddress = this.knownAddresses.find((addr) => addr.type === type && addr.index === index);
+  async deriveAddress({ index, type }: AddressDerivationPath): Promise<GroupedAddress> {
+    const knownAddress = this.knownAddresses.find(
+      (addr) => addr.derivationPath.type === type && addr.derivationPath.index === index
+    );
     if (knownAddress) return knownAddress;
     const derivedPublicPaymentKey = await this.deriveCslPublicKey({
       index,
@@ -69,23 +72,34 @@ export abstract class KeyAgentBase implements KeyAgent {
 
     const rewardAccount = CSL.RewardAddress.new(this.networkId, stakeKeyCredential).to_address();
     const groupedAddress = {
-      accountIndex: this.accountIndex,
       address: Cardano.Address(address.to_bech32()),
-      index,
+      derivationPath: {
+        accountIndex: this.accountIndex,
+
+        coinType: AccountDerivationPathDefaults.CoinType,
+
+        index,
+        /**
+         * TODO - CHECK - purpose / coinType / accountIndex are defaulted.
+         * To use passed params we need to start deriveCslPublicKey from root prv key but,
+         * root private key is not accessible for HW key agents.
+         */
+        purpose: AccountDerivationPathDefaults.Purpose,
+        type
+      },
       networkId: this.networkId,
-      rewardAccount: Cardano.RewardAccount(rewardAccount.to_bech32()),
-      type
+      rewardAccount: Cardano.RewardAccount(rewardAccount.to_bech32())
     };
     this.knownAddresses = [...this.knownAddresses, groupedAddress];
     return groupedAddress;
   }
 
-  async derivePublicKey(derivationPath: AccountKeyDerivationPath): Promise<Cardano.Ed25519PublicKey> {
+  async derivePublicKey(derivationPath: KeyDerivationPath): Promise<Cardano.Ed25519PublicKey> {
     const cslPublicKey = await this.deriveCslPublicKey(derivationPath);
     return Cardano.Ed25519PublicKey.fromHexBlob(util.bytesToHex(cslPublicKey.as_bytes()));
   }
 
-  protected async deriveCslPublicKey({ index, role: type }: AccountKeyDerivationPath): Promise<CSL.PublicKey> {
+  protected async deriveCslPublicKey({ index, role: type }: KeyDerivationPath): Promise<CSL.PublicKey> {
     const accountPublicKeyBytes = Buffer.from(this.extendedAccountPublicKey, 'hex');
     const accountPublicKey = CSL.Bip32PublicKey.from_bytes(accountPublicKeyBytes);
     return accountPublicKey.derive(type).derive(index).to_raw_key();

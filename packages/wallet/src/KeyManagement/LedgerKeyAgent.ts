@@ -1,8 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { AuthenticationError, TransportError } from './errors';
-import { Cardano, NotImplementedError, coreToCsl } from '@cardano-sdk/core';
-import { CardanoKeyConst, Cip1852PathLevelIndexes, txToLedger } from './util';
 import {
+  AccountDerivationPathDefaults,
   CommunicationType,
   KeyAgentType,
   LedgerTransportType,
@@ -10,6 +8,9 @@ import {
   SignBlobResult,
   SignTransactionOptions
 } from './types';
+import { AuthenticationError, TransportError } from './errors';
+import { Cardano, NotImplementedError, coreToCsl } from '@cardano-sdk/core';
+import { Cip1852PathLevelIndexes, txToLedger } from './util';
 import { KeyAgentBase } from './KeyAgentBase';
 import { TxInternals } from '../Transaction';
 import LedgerConnection, { GetVersionResponse, utils } from '@cardano-foundation/ledgerjs-hw-app-cardano';
@@ -27,12 +28,16 @@ export interface CreateLedgerKeyAgentProps {
   accountIndex?: number;
   communicationType: CommunicationType;
   deviceConnection?: LedgerConnection | null;
+  purpose?: number;
+  coinType?: number;
 }
 
 export interface GetLedgerXpubProps {
   deviceConnection?: LedgerConnection;
   communicationType: CommunicationType;
   accountIndex: number;
+  purpose: number;
+  coinType: number;
 }
 
 export interface CreateLedgerTransportProps {
@@ -163,11 +168,13 @@ export class LedgerKeyAgent extends KeyAgentBase {
   static async getXpub({
     deviceConnection,
     communicationType,
-    accountIndex
+    accountIndex,
+    purpose,
+    coinType
   }: GetLedgerXpubProps): Promise<Cardano.Bip32PublicKey> {
     try {
       const recoveredDeviceConnection = await LedgerKeyAgent.checkDeviceConnection(communicationType, deviceConnection);
-      const derivationPath = `${CardanoKeyConst.PURPOSE}'/${CardanoKeyConst.COIN_TYPE}'/${accountIndex}'`;
+      const derivationPath = `${purpose}'/${coinType}'/${accountIndex}'`;
       const extendedPublicKey = await recoveredDeviceConnection.getExtendedPublicKey({
         path: utils.str_to_path(derivationPath) // BIP32Path
       });
@@ -201,7 +208,9 @@ export class LedgerKeyAgent extends KeyAgentBase {
     protocolMagic,
     accountIndex = 0,
     communicationType,
-    deviceConnection
+    deviceConnection,
+    purpose,
+    coinType
   }: CreateLedgerKeyAgentProps) {
     const deviceListPaths = await LedgerKeyAgent.getHidDeviceList(communicationType);
     // Re-use device connection if you want to create a key agent with new / additional account(s) and pass accountIndex
@@ -210,8 +219,10 @@ export class LedgerKeyAgent extends KeyAgentBase {
       : LedgerKeyAgent.establishDeviceConnection(communicationType, deviceListPaths[0]));
     const extendedAccountPublicKey = await LedgerKeyAgent.getXpub({
       accountIndex,
+      coinType: coinType || AccountDerivationPathDefaults.CoinType,
       communicationType,
-      deviceConnection: activeDeviceConnection
+      deviceConnection: activeDeviceConnection,
+      purpose: purpose || AccountDerivationPathDefaults.Purpose
     });
 
     return new LedgerKeyAgent({

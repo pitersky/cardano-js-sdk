@@ -1,4 +1,3 @@
-import { AccountKeyDerivationPath } from '..';
 import {
   AlgorithmId,
   CBORValue,
@@ -17,6 +16,7 @@ import { Cardano, parseCslAddress, util } from '@cardano-sdk/core';
 import { Cip30DataSignature } from '@cardano-sdk/cip30';
 import { CoseLabel } from './util';
 import { CustomError } from 'ts-custom-error';
+import { KeyDerivationPath } from '..';
 import { STAKE_KEY_DERIVATION_PATH } from '../util';
 import { firstValueFrom } from 'rxjs';
 
@@ -60,7 +60,7 @@ const getDerivationPath = async (signWith: Cardano.Address | Cardano.RewardAccou
   if (!knownAddress) {
     throw new Cip30DataSignError(Cip30DataSignErrorCode.ProofGeneration, 'Unknown address');
   }
-  return { index: knownAddress.index, role: knownAddress.type as number as KeyRole };
+  return { index: knownAddress.derivationPath.index, role: knownAddress.derivationPath.type as number as KeyRole };
 };
 
 const createSigStructureHeaders = (addressBytes: Uint8Array) => {
@@ -71,11 +71,7 @@ const createSigStructureHeaders = (addressBytes: Uint8Array) => {
   return protectedHeaders;
 };
 
-const signSigStructure = (
-  keyAgent: AsyncKeyAgent,
-  derivationPath: AccountKeyDerivationPath,
-  sigStructure: SigStructure
-) => {
+const signSigStructure = (keyAgent: AsyncKeyAgent, derivationPath: KeyDerivationPath, sigStructure: SigStructure) => {
   try {
     return keyAgent.signBlob(derivationPath, util.bytesToHex(sigStructure.to_bytes()));
   } catch (error) {

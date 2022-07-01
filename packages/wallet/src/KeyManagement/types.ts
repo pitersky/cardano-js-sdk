@@ -1,4 +1,5 @@
 import { Cardano } from '@cardano-sdk/core';
+import { CardanoKeyConst } from './util';
 import { Observable } from 'rxjs';
 import { Shutdown } from '@cardano-sdk/util';
 import { TxInternals } from '../Transaction';
@@ -22,10 +23,6 @@ export enum KeyRole {
   Stake = 2
 }
 
-export interface AccountKeyDerivationPath {
-  role: KeyRole;
-  index: number;
-}
 /** Internal = change address & External = receipt address */
 export enum AddressType {
   /**
@@ -49,16 +46,40 @@ export enum CommunicationType {
 
 export type BIP32Path = Array<number>;
 
-export interface AccountAddressDerivationPath {
-  type: AddressType;
-  index: number;
+export enum AccountDerivationPathDefaults {
+  /**
+   * Default: 1852
+   */
+  Purpose = CardanoKeyConst.PURPOSE,
+  /**
+   * Default: 1815
+   */
+  CoinType = CardanoKeyConst.COIN_TYPE,
+  AccountIndex = 0
 }
 
-export interface GroupedAddress {
+export interface AccountDerivationPath {
+  accountIndex: number;
+  purpose: number;
+  coinType: number;
+}
+
+export type KeyDerivationPath = {
+  role: KeyRole;
+  index: number;
+} & Partial<AccountDerivationPath>;
+
+export type AddressDerivationPath = {
   type: AddressType;
   index: number;
+} & Partial<AccountDerivationPath>;
+
+export interface GroupedAddress {
   networkId: Cardano.NetworkId;
-  accountIndex: number;
+  derivationPath: AccountDerivationPath & {
+    type: AddressType;
+    index: number;
+  };
   address: Cardano.Address;
   rewardAccount: Cardano.RewardAccount;
 }
@@ -122,7 +143,7 @@ export type ResolveInputAddress = (txIn: Cardano.NewTxIn) => Promise<Cardano.Add
 
 export interface SignTransactionOptions {
   inputAddressResolver: ResolveInputAddress;
-  additionalKeyPaths?: AccountKeyDerivationPath[];
+  additionalKeyPaths?: KeyDerivationPath[];
 }
 
 export interface SignVotingMetadataProps {
@@ -134,14 +155,13 @@ export interface SignVotingMetadataProps {
 
 export interface KeyAgent {
   get networkId(): Cardano.NetworkId;
-  get accountIndex(): number;
   get serializableData(): SerializableKeyAgentData;
   get knownAddresses(): GroupedAddress[];
   get extendedAccountPublicKey(): Cardano.Bip32PublicKey;
   /**
    * @throws AuthenticationError
    */
-  signBlob(derivationPath: AccountKeyDerivationPath, blob: Cardano.util.HexBlob): Promise<SignBlobResult>;
+  signBlob(derivationPath: KeyDerivationPath, blob: Cardano.util.HexBlob): Promise<SignBlobResult>;
   /**
    * @throws AuthenticationError
    */
@@ -149,11 +169,11 @@ export interface KeyAgent {
   /**
    * @throws AuthenticationError
    */
-  derivePublicKey(derivationPath: AccountKeyDerivationPath): Promise<Cardano.Ed25519PublicKey>;
+  derivePublicKey(derivationPath: KeyDerivationPath): Promise<Cardano.Ed25519PublicKey>;
   /**
    * @throws AuthenticationError
    */
-  deriveAddress(derivationPath: AccountAddressDerivationPath): Promise<GroupedAddress>;
+  deriveAddress(derivationPath: AddressDerivationPath): Promise<GroupedAddress>;
   /**
    * @throws AuthenticationError
    */
