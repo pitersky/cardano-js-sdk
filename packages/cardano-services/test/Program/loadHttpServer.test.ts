@@ -30,8 +30,8 @@ describe('loadHttpServer', () => {
   let httpServer: HttpServer;
   let ogmiosConnection: Connection;
   let ogmiosServer: http.Server;
-  let retryBackoffFactor: number;
-  let retryBackoffMaxTimeout: number;
+  let serviceDiscoveryBackoffFactor: number;
+  let serviceDiscoveryTimeout: number;
 
   beforeEach(async () => {
     apiUrl = new URL(`http://localhost:${await getRandomPort()}`);
@@ -40,8 +40,8 @@ describe('loadHttpServer', () => {
     ogmiosConnection = await createConnectionObjectWithRandomPort();
     dbQueriesCacheTtl = CACHE_TTL_DEFAULT;
     dbPollInterval = DB_POLL_INTERVAL_DEFAULT;
-    retryBackoffFactor = RETRY_BACKOFF_FACTOR_DEFAULT;
-    retryBackoffMaxTimeout = RETRY_BACKOFF_MAX_TIMEOUT_DEFAULT;
+    serviceDiscoveryBackoffFactor = RETRY_BACKOFF_FACTOR_DEFAULT;
+    serviceDiscoveryTimeout = RETRY_BACKOFF_MAX_TIMEOUT_DEFAULT;
   });
 
   describe('healthy internal providers', () => {
@@ -64,8 +64,8 @@ describe('loadHttpServer', () => {
           dbPollInterval,
           dbQueriesCacheTtl,
           ogmiosUrl: new URL(ogmiosConnection.address.webSocket),
-          retryBackoffFactor,
-          retryBackoffMaxTimeout
+          serviceDiscoveryBackoffFactor,
+          serviceDiscoveryTimeout
         },
         serviceNames: [
           ServiceNames.StakePool,
@@ -127,8 +127,8 @@ describe('loadHttpServer', () => {
               dbPollInterval,
               dbQueriesCacheTtl,
               ogmiosUrl: new URL(ogmiosConnection.address.webSocket),
-              retryBackoffFactor,
-              retryBackoffMaxTimeout
+              serviceDiscoveryBackoffFactor,
+              serviceDiscoveryTimeout
             },
             serviceNames: [ServiceNames.StakePool, ServiceNames.TxSubmit]
           })

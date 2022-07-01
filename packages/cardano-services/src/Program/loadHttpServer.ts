@@ -23,8 +23,8 @@ export interface HttpServerOptions extends CommonProgramOptions, SrvProgramOptio
   dbConnectionString?: string;
   dbQueriesCacheTtl: number;
   dbPollInterval: number;
-  retryBackoffFactor: number;
-  retryBackoffMaxTimeout: number;
+  serviceDiscoveryBackoffFactor: number;
+  serviceDiscoveryTimeout: number;
   cardanoNodeConfigPath?: string;
   metricsEnabled?: boolean;
   useQueue?: boolean;

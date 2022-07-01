@@ -29,20 +29,20 @@ export const onFailedAttemptFor =
   };
 
 export const resolveDnsSrvWithExponentialBackoff = async (
-  hostname: string,
+  servicename: string,
   { factor, maxRetryTime }: RetryBackoffConfig,
   logger: Logger
 ) =>
   await pRetry(
     async () => {
       // Shall we grab the first one always?
-      const [record] = await dns.promises.resolveSrv(hostname);
+      const [record] = await dns.promises.resolveSrv(servicename);
       return record;
     },
     {
       factor,
       maxRetryTime,
-      onFailedAttempt: onFailedAttemptFor(`Establishing connection to ${hostname}`, logger)
+      onFailedAttempt: onFailedAttemptFor(`Establishing connection to ${servicename}`, logger)
     }
   );
 
@@ -89,7 +89,7 @@ export const getPool = async (logger: Logger, options?: HttpServerOptions): Prom
         password: options.postgresPassword,
         user: options.postgresUser
       },
-      { factor: options.retryBackoffFactor, maxRetryTime: options.retryBackoffMaxTimeout },
+      { factor: options.serviceDiscoveryBackoffFactor, maxRetryTime: options.serviceDiscoveryTimeout },
       logger
     );
   }

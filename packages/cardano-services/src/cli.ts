@@ -103,14 +103,14 @@ commonOptions(
     DB_POLL_INTERVAL_DEFAULT
   )
   .option(
-    '--retry-backoff-factor <retryBackoffFactor>',
-    ProgramOptionDescriptions.RetryBackoffFactory,
+    '--service-discovery-backoff-factor <serviceDiscoveryBackoffFactor>',
+    ProgramOptionDescriptions.ServiceDiscoveryBackoffFactor,
     (factor) => Number.parseFloat(factor),
     RETRY_BACKOFF_FACTOR_DEFAULT
   )
   .option(
-    '--retry-backoff-max-timeout <retryBackoffMaxTimeout>',
-    ProgramOptionDescriptions.RetryBackoffMaxTimeout,
+    '--service-discovery-timeout <serviceDiscoveryTimeout>',
+    ProgramOptionDescriptions.ServiceDiscoverBackoffTimeout,
     (interval) => Number.parseInt(interval, 10),
     RETRY_BACKOFF_MAX_TIMEOUT_DEFAULT
   )

@@ -32,8 +32,8 @@ const envSpecs = {
   POSTGRES_SRV_HOSTAME: envalid.str({ default: undefined }),
   POSTGRES_USER: envalid.str({ default: undefined }),
   RABBITMQ_URL: envalid.url({ default: RABBITMQ_URL_DEFAULT }),
-  RETRY_BACKOFF_FACTOR: envalid.num({ default: RETRY_BACKOFF_FACTOR_DEFAULT }),
-  RETRY_BACKOFF_MAX_TIMEOUT: envalid.num({ default: RETRY_BACKOFF_MAX_TIMEOUT_DEFAULT }),
+  SERVICE_DISCOVERY_BACKOFF_FACTOR: envalid.num({ default: RETRY_BACKOFF_FACTOR_DEFAULT }),
+  SERVICE_DISCOVERY_BACKOFF_MAX_TIMEOUT: envalid.num({ default: RETRY_BACKOFF_MAX_TIMEOUT_DEFAULT }),
   SERVICE_NAMES: envalid.str({ example: Object.values(ServiceNames).toString() }),
   USE_QUEUE: envalid.bool({ default: USE_QUEUE_DEFAULT })
 };
@@ -48,8 +48,8 @@ void (async () => {
   const dbQueriesCacheTtl = env.DB_QUERIES_CACHE_TTL;
   const dbPollInterval = env.DB_POLL_INTERVAL;
   const dbConnectionString = env.DB_CONNECTION_STRING ? new URL(env.DB_CONNECTION_STRING).toString() : undefined;
-  const retryBackoffFactor = env.RETRY_BACKOFF_FACTOR;
-  const retryBackoffMaxTimeout = env.RETRY_BACKOFF_MAX_TIMEOUT;
+  const serviceDiscoveryBackoffFactor = env.SERVICE_DISCOVERY_BACKOFF_FACTOR;
+  const serviceDiscoveryTimeout = env.SERVICE_DISCOVERY_BACKOFF_MAX_TIMEOUT;
   const postgresSrvHostname = env.POSTGRES_SRV_HOSTAME;
   const postgresName = env.POSTGRES_NAME;
   const postgresUser = env.POSTGRES_USER;
@@ -71,8 +71,8 @@ void (async () => {
         postgresSrvHostname,
         postgresUser,
         rabbitmqUrl,
-        retryBackoffFactor,
-        retryBackoffMaxTimeout,
+        serviceDiscoveryBackoffFactor,
+        serviceDiscoveryTimeout,
         useQueue: env.USE_QUEUE
       },
       serviceNames
