@@ -8,7 +8,7 @@ Object {
 
 exports[`RewardsBuilder getAccountBalance returns AccountBalanceModel 1`] = `
 Object {
-  "balance": "48642468465",
+  "balance": "60964136346",
 }
 `;
 
