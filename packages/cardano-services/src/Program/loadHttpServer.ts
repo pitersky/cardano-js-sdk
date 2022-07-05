@@ -83,8 +83,8 @@ const serviceMapFactory = (args: ProgramArgs, logger: Logger, cache: InMemoryCac
   },
   [ServiceNames.TxSubmit]: async () => {
     const txSubmitProvider = args.options?.useQueue
-      ? await getRabbitMqTxSubmitProvider(logger, args.options)
-      : await getCardanoNodeProvider(logger, args.options);
+      ? await getRabbitMqTxSubmitProvider(logger, cache, args.options)
+      : await getCardanoNodeProvider(logger, cache, args.options);
 
     return new TxSubmitHttpService({ logger, txSubmitProvider });
   }
@@ -97,9 +97,8 @@ export const loadHttpServer = async (args: ProgramArgs): Promise<HttpServer> => 
     name: 'http-server'
   });
 
-  const db = await getPool(logger, args.options);
-
   const cache = new InMemoryCache(args.options?.dbQueriesCacheTtl);
+  const db = await getPool(logger, cache, args.options);
 
   const serviceMap = serviceMapFactory(args, logger, cache, db);
 
