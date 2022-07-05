@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable sonarjs/no-duplicate-string */
-import { Cardano, NetworkInfo, NetworkInfoProvider } from '@cardano-sdk/core';
+import { Cardano, CardanoNode, NetworkInfo, NetworkInfoProvider } from '@cardano-sdk/core';
 import { DbSyncNetworkInfoProvider, NetworkInfoCacheKey, NetworkInfoHttpService } from '../../src/NetworkInfo';
 import { HttpServer, HttpServerConfig } from '../../src';
 import { InMemoryCache, UNLIMITED_CACHE_TTL } from '../../src/InMemoryCache';
@@ -22,7 +22,7 @@ describe('NetworkInfoHttpService', () => {
   let apiUrlBase: string;
   let config: HttpServerConfig;
   let doNetworkInfoRequest: ReturnType<typeof doServerRequest>;
-  let cardanoNode: Cardano.CardanoNode;
+  let cardanoNode: CardanoNode;
 
   const epochPollInterval = 2 * 1000;
   const cache = new InMemoryCache(UNLIMITED_CACHE_TTL);
@@ -48,7 +48,7 @@ describe('NetworkInfoHttpService', () => {
       systemStart: jest.fn(() => Promise.resolve(new Date(1_563_999_616_000)))
     };
     networkInfoProvider = new DbSyncNetworkInfoProvider(
-      { cardanoNodeConfigPath, epochPollInterval, ogmiosConnectionConfig: {} },
+      { cardanoNodeConfigPath, epochPollInterval },
       { cache, cardanoNode, db }
     );
     service = await NetworkInfoHttpService.create({ networkInfoProvider });

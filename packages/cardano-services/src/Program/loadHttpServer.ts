@@ -75,10 +75,9 @@ const serviceMapFactory = (args: ProgramArgs, logger: Logger, cache: InMemoryCac
       networkInfoProvider: new DbSyncNetworkInfoProvider(
         {
           cardanoNodeConfigPath: args.options.cardanoNodeConfigPath,
-          epochPollInterval: args.options?.epochPollInterval,
-          ogmiosConnectionConfig: urlToConnectionConfig(args.options.ogmiosUrl)
+          epochPollInterval: args.options?.epochPollInterval
         },
-        { cache, cardanoNode: new CardanoNode(logger), db, logger }
+        { cache, cardanoNode: new CardanoNode(urlToConnectionConfig(args.options.ogmiosUrl), logger), db, logger }
       )
     });
   },

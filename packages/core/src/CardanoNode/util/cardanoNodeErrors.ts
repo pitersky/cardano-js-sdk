@@ -1,4 +1,4 @@
-import { CardanoNodeError, CardanoNodeErrors } from '../types';
+import { CardanoClientErrors, CardanoNodeError } from '../types/CardanoNodeErrors';
 
 /**
  * Tests the provided error for an instanceof match in the CardanoErrors object
@@ -6,7 +6,7 @@ import { CardanoNodeError, CardanoNodeErrors } from '../types';
  * @param {any} error the error under test
  */
 export const isCardanoNodeError = (error: unknown): error is CardanoNodeError =>
-  Object.values(CardanoNodeErrors).some((NodeError) => error instanceof NodeError);
+  Object.values(CardanoClientErrors).some((NodeError) => error instanceof NodeError);
 
 /**
  * Attempts to convert the provided error or array of errors into CardanoNodeError object

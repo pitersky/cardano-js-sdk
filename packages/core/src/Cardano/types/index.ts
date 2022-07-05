@@ -15,11 +15,10 @@ export * from './Genesis';
 export * from './Block';
 export * from './Asset';
 export * from './AuxiliaryData';
-export * from './CardanoNode';
 export * from './Key';
 export * from './TxSubmissionErrors';
-export * from './CardanoNodeErrors';
 export * as NativeScriptType from './NativeScriptType';
+export * from './EraSummary';
 
 export type ProtocolParametersAlonzo = OptionalUndefined<
   RecursivelyReplaceNullWithUndefined<Ogmios.ProtocolParametersAlonzo>

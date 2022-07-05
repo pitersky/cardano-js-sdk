@@ -1,4 +1,4 @@
-import { Cardano } from '@cardano-sdk/core';
+import { CardanoNodeErrors, CardanoNodeUtil, CardanoNode as ICardanoNode } from '@cardano-sdk/core';
 import { ConnectionConfig, StateQuery, createInteractionContext, createStateQueryClient } from '@cardano-ogmios/client';
 import { Logger, dummyLogger } from 'ts-log';
 import { mapEraSummary } from './mappers';
@@ -10,17 +10,19 @@ type CardanoNodeState = 'initialized' | 'initializing' | null;
  *
  * @class CardanoNode
  */
-export class CardanoNode implements Cardano.CardanoNode {
+export class CardanoNode implements ICardanoNode {
   #stateQueryClient: StateQuery.StateQueryClient;
   #logger: Logger;
   #state: CardanoNodeState;
+  #connectionConfig: ConnectionConfig;
 
-  constructor(logger = dummyLogger) {
+  constructor(connectionConfig: ConnectionConfig, logger = dummyLogger) {
     this.#logger = logger;
     this.#state = null;
+    this.#connectionConfig = connectionConfig;
   }
 
-  public async initialize(connectionConfig: ConnectionConfig) {
+  public async initialize() {
     if (this.#state !== null) return;
     this.#state = 'initializing';
     this.#logger.info('Initializing CardanoNode');
@@ -30,7 +32,7 @@ export class CardanoNode implements Cardano.CardanoNode {
           this.#logger.error.bind(this.#logger)({ error: error.name, module: 'CardanoNode' }, error.message);
         },
         this.#logger.info.bind(this.#logger),
-        { connection: connectionConfig, interactionType: 'LongRunning' }
+        { connection: this.#connectionConfig, interactionType: 'LongRunning' }
       )
     );
     this.#state = 'initialized';
@@ -39,7 +41,7 @@ export class CardanoNode implements Cardano.CardanoNode {
 
   public async shutdown(): Promise<void> {
     if (this.#state !== 'initialized') {
-      throw new Cardano.CardanoNodeNotInitializedError('shutdown');
+      throw new CardanoNodeErrors.CardanoNodeNotInitializedError('shutdown');
     }
     this.#logger.info('Shutting down CardanoNode');
     await this.#stateQueryClient.shutdown();
@@ -48,7 +50,7 @@ export class CardanoNode implements Cardano.CardanoNode {
 
   public async eraSummaries() {
     if (this.#state !== 'initialized') {
-      throw new Cardano.CardanoNodeNotInitializedError('eraSummaries');
+      throw new CardanoNodeErrors.CardanoNodeNotInitializedError('eraSummaries');
     }
     try {
       this.#logger.info('Getting era summaries');
@@ -56,19 +58,19 @@ export class CardanoNode implements Cardano.CardanoNode {
       const eraSummaries = await this.#stateQueryClient.eraSummaries();
       return eraSummaries.map((era) => mapEraSummary(era, systemStart));
     } catch (error) {
-      throw Cardano.util.asCardanoNodeError(error) || new Cardano.UnknownCardanoNodeError(error);
+      throw CardanoNodeUtil.asCardanoNodeError(error) || new CardanoNodeErrors.UnknownCardanoNodeError(error);
     }
   }
 
   public async systemStart() {
     if (this.#state !== 'initialized') {
-      throw new Cardano.CardanoNodeNotInitializedError('systemStart');
+      throw new CardanoNodeErrors.CardanoNodeNotInitializedError('systemStart');
     }
     try {
       this.#logger.info('Getting system start');
       return await this.#stateQueryClient.systemStart();
     } catch (error) {
-      throw Cardano.util.asCardanoNodeError(error) || new Cardano.UnknownCardanoNodeError(error);
+      throw CardanoNodeUtil.asCardanoNodeError(error) || new CardanoNodeErrors.UnknownCardanoNodeError(error);
     }
   }
 }

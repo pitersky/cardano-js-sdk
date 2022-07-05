@@ -23,7 +23,7 @@ export class CardanoNodeNotInitializedError extends CustomError {
   }
 }
 
-export const CardanoNodeErrors = {
+export const CardanoClientErrors = {
   AcquirePointNotOnChainError,
   AcquirePointTooOldError,
   EraMismatchError,
@@ -35,6 +35,9 @@ export const CardanoNodeErrors = {
   WebSocketClosed
 };
 
-type CardanoNodeErrorName = keyof typeof CardanoNodeErrors;
-type CardanoNodeErrorClass = typeof CardanoNodeErrors[CardanoNodeErrorName];
-export type CardanoNodeError = InstanceType<CardanoNodeErrorClass> | UnknownCardanoNodeError;
+type CardanoClientErrorName = keyof typeof CardanoClientErrors;
+type CardanoClientErrorClass = typeof CardanoClientErrors[CardanoClientErrorName];
+export type CardanoNodeError =
+  | InstanceType<CardanoClientErrorClass>
+  | UnknownCardanoNodeError
+  | CardanoNodeNotInitializedError;
