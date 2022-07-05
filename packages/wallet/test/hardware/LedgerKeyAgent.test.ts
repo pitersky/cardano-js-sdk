@@ -25,12 +25,16 @@ describe('LedgerKeyAgent', () => {
     const rewardsProvider = mocks.mockRewardsProvider();
     const chainHistoryProvider = mocks.mockChainHistoryProvider();
     const groupedAddress: KeyManagement.GroupedAddress = {
-      accountIndex: 0,
       address,
-      index: 0,
+      derivationPath: {
+        accountIndex: 0,
+        coinType: KeyManagement.AccountDerivationPathDefaults.CoinType,
+        index: 0,
+        purpose: KeyManagement.AccountDerivationPathDefaults.Purpose,
+        type: KeyManagement.AddressType.External
+      },
       networkId: Cardano.NetworkId.testnet,
-      rewardAccount: mocks.rewardAccount,
-      type: KeyManagement.AddressType.External
+      rewardAccount: mocks.rewardAccount
     };
     keyAgent.deriveAddress = jest.fn().mockResolvedValue(groupedAddress);
     keyAgent.knownAddresses.push(groupedAddress);
@@ -73,6 +77,14 @@ describe('LedgerKeyAgent', () => {
 
   test('accountIndex', () => {
     expect(typeof keyAgent.accountIndex).toBe('number');
+  });
+
+  test('purpose', () => {
+    expect(typeof keyAgent.purpose).toBe('number');
+  });
+
+  test('coinType', () => {
+    expect(typeof keyAgent.coinType).toBe('number');
   });
 
   test('knownAddresses', () => {
@@ -174,6 +186,8 @@ describe('LedgerKeyAgent', () => {
     it('all fields are of correct types', () => {
       expect(typeof serializableData.__typename).toBe('string');
       expect(typeof serializableData.accountIndex).toBe('number');
+      expect(typeof serializableData.purpose).toBe('number');
+      expect(typeof serializableData.coinType).toBe('number');
       expect(typeof serializableData.networkId).toBe('number');
       expect(Array.isArray(serializableData.knownAddresses)).toBe(true);
       expect(typeof serializableData.extendedAccountPublicKey).toBe('string');

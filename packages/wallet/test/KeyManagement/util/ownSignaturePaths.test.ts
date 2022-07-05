@@ -1,11 +1,16 @@
-import { AddressType, GroupedAddress, KeyRole, util } from '../../../src/KeyManagement';
+import { AccountDerivationPathDefaults, AddressType, GroupedAddress, KeyRole, util } from '../../../src/KeyManagement';
 import { Cardano } from '@cardano-sdk/core';
 
 const createGroupedAddress = (address: Cardano.Address, type: AddressType, index: number): GroupedAddress =>
   ({
     address,
-    index,
-    type
+    derivationPath: {
+      accountIndex: 0,
+      coinType: AccountDerivationPathDefaults.CoinType,
+      index,
+      purpose: AccountDerivationPathDefaults.Purpose,
+      type
+    }
   } as GroupedAddress);
 
 describe('KeyManagement.util.ownSignaturePaths', () => {

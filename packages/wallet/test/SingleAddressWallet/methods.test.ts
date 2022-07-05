@@ -44,12 +44,16 @@ describe('SingleAddressWallet methods', () => {
     const rewardsProvider = mockRewardsProvider();
     const chainHistoryProvider = mockChainHistoryProvider();
     const groupedAddress: KeyManagement.GroupedAddress = {
-      accountIndex: 0,
       address,
-      index: 0,
+      derivationPath: {
+        accountIndex: 0,
+        coinType: KeyManagement.AccountDerivationPathDefaults.CoinType,
+        index: 0,
+        purpose: KeyManagement.AccountDerivationPathDefaults.Purpose,
+        type: KeyManagement.AddressType.External
+      },
       networkId: Cardano.NetworkId.testnet,
-      rewardAccount: mocks.rewardAccount,
-      type: KeyManagement.AddressType.External
+      rewardAccount: mocks.rewardAccount
     };
     const keyAgent = await mocks.testAsyncKeyAgent([groupedAddress]);
     keyAgent.deriveAddress = jest.fn().mockResolvedValue(groupedAddress);

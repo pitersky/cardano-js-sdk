@@ -1,15 +1,16 @@
 import * as errors from './errors';
-import { AuthenticationError } from './errors';
-import { CSL, Cardano, util } from '@cardano-sdk/core';
 import {
+  AccountDerivationPathDefaults,
+  AccountKeyDerivationPath,
   GetPassword,
   KeyAgentType,
-  KeyDerivationPath,
   SerializableInMemoryKeyAgentData,
   SignBlobResult,
   SignTransactionOptions,
   SignVotingMetadataProps
 } from './types';
+import { AuthenticationError } from './errors';
+import { CSL, Cardano, util } from '@cardano-sdk/core';
 import { KeyAgentBase } from './KeyAgentBase';
 import {
   STAKE_KEY_DERIVATION_PATH,
@@ -54,12 +55,14 @@ export class InMemoryKeyAgent extends KeyAgentBase {
     this.#getPassword = getPassword;
   }
 
-  async signBlob(
-    { purpose, coinType, accountIndex, index, role: type }: KeyDerivationPath,
-    blob: Cardano.util.HexBlob
-  ): Promise<SignBlobResult> {
+  async signBlob({ index, role: type }: AccountKeyDerivationPath, blob: Cardano.util.HexBlob): Promise<SignBlobResult> {
     const rootPrivateKey = await this.#decryptRootPrivateKey();
-    const accountKey = deriveAccountPrivateKey(rootPrivateKey, accountIndex || this.accountIndex, purpose, coinType);
+    const accountKey = deriveAccountPrivateKey({
+      accountIndex: this.accountIndex,
+      coinType: this.coinType,
+      purpose: this.purpose,
+      rootPrivateKey
+    });
     const signingKey = accountKey.derive(type).derive(index).to_raw_key();
     const signature = Cardano.Ed25519Signature(signingKey.sign(Buffer.from(blob, 'hex')).to_hex());
     const publicKey = Cardano.Ed25519PublicKey.fromHexBlob(util.bytesToHex(signingKey.to_public().as_bytes()));
@@ -83,9 +86,9 @@ export class InMemoryKeyAgent extends KeyAgentBase {
     getPassword,
     mnemonicWords,
     mnemonic2ndFactorPassphrase = Buffer.from(''),
-    accountIndex = 0,
-    purpose,
-    coinType
+    accountIndex = AccountDerivationPathDefaults.AccountIndex,
+    purpose = AccountDerivationPathDefaults.Purpose,
+    coinType = AccountDerivationPathDefaults.CoinType
   }: FromBip39MnemonicWordsProps): Promise<InMemoryKeyAgent> {
     const mnemonic = joinMnemonicWords(mnemonicWords);
     const validMnemonic = validateMnemonic(mnemonic);
@@ -94,17 +97,24 @@ export class InMemoryKeyAgent extends KeyAgentBase {
     const rootPrivateKey = CSL.Bip32PrivateKey.from_bip39_entropy(entropy, mnemonic2ndFactorPassphrase);
     const password = await getPasswordRethrowTypedError(getPassword);
     const encryptedRootPrivateKey = await emip3encrypt(rootPrivateKey.as_bytes(), password);
-    const accountPrivateKey = deriveAccountPrivateKey(rootPrivateKey, accountIndex, purpose, coinType);
+    const accountPrivateKey = deriveAccountPrivateKey({
+      accountIndex,
+      coinType,
+      purpose,
+      rootPrivateKey
+    });
     const extendedAccountPublicKey = Cardano.Bip32PublicKey(
       Buffer.from(accountPrivateKey.to_public().as_bytes()).toString('hex')
     );
     return new InMemoryKeyAgent({
       accountIndex,
+      coinType,
       encryptedRootPrivateKeyBytes: [...encryptedRootPrivateKey],
       extendedAccountPublicKey,
       getPassword,
       knownAddresses: [],
-      networkId
+      networkId,
+      purpose
     });
   }
 

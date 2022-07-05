@@ -34,6 +34,14 @@ describe('InMemoryKeyAgent', () => {
     expect(typeof keyAgent.accountIndex).toBe('number');
   });
 
+  test('purpose', () => {
+    expect(typeof keyAgent.purpose).toBe('number');
+  });
+
+  test('coinType', () => {
+    expect(typeof keyAgent.coinType).toBe('number');
+  });
+
   test('fromBip39MnemonicWords with "mnemonic2ndFactorPassphrase" results in different key', async () => {
     const saferKeyAgent = await KeyManagement.InMemoryKeyAgent.fromBip39MnemonicWords({
       getPassword,
@@ -54,6 +62,8 @@ describe('InMemoryKeyAgent', () => {
     it('all fields are of correct types', () => {
       expect(typeof serializableData.__typename).toBe('string');
       expect(typeof serializableData.accountIndex).toBe('number');
+      expect(typeof serializableData.purpose).toBe('number');
+      expect(typeof serializableData.coinType).toBe('number');
       expect(typeof serializableData.networkId).toBe('number');
       expect(Array.isArray(serializableData.knownAddresses)).toBe(true);
       expect(serializableData.encryptedRootPrivateKeyBytes.length > 0).toBe(true);
@@ -149,17 +159,22 @@ describe('InMemoryKeyAgent', () => {
     it('can decrypt yoroi-encrypted root private key', async () => {
       const keyAgentFromEncryptedKey = new KeyManagement.InMemoryKeyAgent({
         accountIndex: 0,
+        coinType: KeyManagement.AccountDerivationPathDefaults.CoinType,
         encryptedRootPrivateKeyBytes: [...Buffer.from(yoroiEncryptedRootPrivateKeyHex, 'hex')],
         extendedAccountPublicKey: Cardano.Bip32PublicKey(
           Buffer.from(
-            deriveAccountPrivateKey(CSL.Bip32PrivateKey.from_bytes(Buffer.from(yoroiRootPrivateKeyHex, 'hex')), 0)
+            deriveAccountPrivateKey({
+              accountIndex: 0,
+              rootPrivateKey: CSL.Bip32PrivateKey.from_bytes(Buffer.from(yoroiRootPrivateKeyHex, 'hex'))
+            })
               .to_public()
               .as_bytes()
           ).toString('hex')
         ),
         getPassword,
         knownAddresses: [],
-        networkId: Cardano.NetworkId.testnet
+        networkId: Cardano.NetworkId.testnet,
+        purpose: KeyManagement.AccountDerivationPathDefaults.Purpose
       });
       const exportedPrivateKeyHex = await keyAgentFromEncryptedKey.exportRootPrivateKey();
       expect(exportedPrivateKeyHex).toEqual(yoroiRootPrivateKeyHex);
@@ -213,17 +228,23 @@ describe('InMemoryKeyAgent', () => {
     it.skip('can decrypt daedelus-encrypted root private key to produce expected stake address', async () => {
       const keyAgentFromEncryptedKey = new KeyManagement.InMemoryKeyAgent({
         accountIndex: 0,
+        coinType: KeyManagement.AccountDerivationPathDefaults.CoinType,
         encryptedRootPrivateKeyBytes: [...Buffer.from(daedelusEncryptedRootPrivateKeyHex, 'hex')],
         extendedAccountPublicKey: Cardano.Bip32PublicKey(
           Buffer.from(
-            deriveAccountPrivateKey(CSL.Bip32PrivateKey.from_bytes(Buffer.from(daedalusRootPrivateKeyHex, 'hex')), 0)
+            deriveAccountPrivateKey({
+              accountIndex: 0,
+              rootPrivateKey: CSL.Bip32PrivateKey.from_bytes(Buffer.from(daedalusRootPrivateKeyHex, 'hex'))
+            })
               .to_public()
               .as_bytes()
           ).toString('hex')
         ),
-        getPassword: jest.fn().mockResolvedValue(Buffer.from('nMmys*X002')), // daedelus enforces min length of 10
+        getPassword: jest.fn().mockResolvedValue(Buffer.from('nMmys*X002')),
+        // daedelus enforces min length of 10
         knownAddresses: [],
-        networkId: Cardano.NetworkId.testnet
+        networkId: Cardano.NetworkId.testnet,
+        purpose: KeyManagement.AccountDerivationPathDefaults.Purpose
       });
       const derivedAddress = await keyAgentFromEncryptedKey.deriveAddress({
         index: 1,

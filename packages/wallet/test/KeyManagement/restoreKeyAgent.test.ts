@@ -7,6 +7,7 @@ describe('KeyManagement/restoreKeyAgent', () => {
     const inMemoryKeyAgentData: KeyManagement.SerializableInMemoryKeyAgentData = {
       __typename: KeyManagement.KeyAgentType.InMemory,
       accountIndex: 0,
+      coinType: KeyManagement.AccountDerivationPathDefaults.CoinType,
       encryptedRootPrivateKeyBytes: [
         9, 10, 153, 62, 225, 131, 81, 153, 234, 186, 63, 211, 14, 172, 194, 82, 184, 119, 228, 49, 2, 133, 239, 127,
         196, 140, 219, 8, 136, 248, 186, 84, 165, 123, 197, 105, 73, 181, 144, 27, 137, 206, 159, 63, 37, 138, 150, 49,
@@ -22,17 +23,22 @@ describe('KeyManagement/restoreKeyAgent', () => {
       ),
       knownAddresses: [
         {
-          accountIndex: 0,
           address: Cardano.Address(
             'addr1qx52knza2h5x090n4a5r7yraz3pwcamk9ppvuh7e26nfks7pnmhxqavtqy02zezklh27jt9r6z62sav3mugappdc7xnskxy2pn'
           ),
-          index: 0,
+          derivationPath: {
+            accountIndex: 0,
+            coinType: KeyManagement.AccountDerivationPathDefaults.CoinType,
+            index: 0,
+            purpose: KeyManagement.AccountDerivationPathDefaults.Purpose,
+            type: KeyManagement.AddressType.External
+          },
           networkId: Cardano.NetworkId.mainnet,
-          rewardAccount: Cardano.RewardAccount('stake1u89sasnfyjtmgk8ydqfv3fdl52f36x3djedfnzfc9rkgzrcss5vgr'),
-          type: KeyManagement.AddressType.External
+          rewardAccount: Cardano.RewardAccount('stake1u89sasnfyjtmgk8ydqfv3fdl52f36x3djedfnzfc9rkgzrcss5vgr')
         }
       ],
-      networkId: 0
+      networkId: 0,
+      purpose: KeyManagement.AccountDerivationPathDefaults.Purpose
     };
     // eslint-disable-next-line unicorn/consistent-function-scoping
     const getPassword: KeyManagement.GetPassword = async () => Buffer.from('password');
@@ -60,6 +66,7 @@ describe('KeyManagement/restoreKeyAgent', () => {
     const ledgerKeyAgentData: KeyManagement.SerializableLedgerKeyAgentData = {
       __typename: KeyManagement.KeyAgentType.Ledger,
       accountIndex: 0,
+      coinType: KeyManagement.AccountDerivationPathDefaults.CoinType,
       communicationType: KeyManagement.CommunicationType.Node,
       extendedAccountPublicKey: Cardano.Bip32PublicKey(
         // eslint-disable-next-line max-len
@@ -67,18 +74,23 @@ describe('KeyManagement/restoreKeyAgent', () => {
       ),
       knownAddresses: [
         {
-          accountIndex: 0,
           address: Cardano.Address(
             'addr1qx52knza2h5x090n4a5r7yraz3pwcamk9ppvuh7e26nfks7pnmhxqavtqy02zezklh27jt9r6z62sav3mugappdc7xnskxy2pn'
           ),
-          index: 0,
+          derivationPath: {
+            accountIndex: 0,
+            coinType: KeyManagement.AccountDerivationPathDefaults.CoinType,
+            index: 0,
+            purpose: KeyManagement.AccountDerivationPathDefaults.Purpose,
+            type: KeyManagement.AddressType.External
+          },
           networkId: Cardano.NetworkId.mainnet,
-          rewardAccount: Cardano.RewardAccount('stake1u89sasnfyjtmgk8ydqfv3fdl52f36x3djedfnzfc9rkgzrcss5vgr'),
-          type: KeyManagement.AddressType.External
+          rewardAccount: Cardano.RewardAccount('stake1u89sasnfyjtmgk8ydqfv3fdl52f36x3djedfnzfc9rkgzrcss5vgr')
         }
       ],
       networkId: 0,
-      protocolMagic: 1_097_911_063
+      protocolMagic: 1_097_911_063,
+      purpose: KeyManagement.AccountDerivationPathDefaults.Purpose
     };
 
     it('can restore key manager from valid data', async () => {
@@ -91,24 +103,30 @@ describe('KeyManagement/restoreKeyAgent', () => {
     const trezorKeyAgentData: KeyManagement.SerializableTrezorKeyAgentData = {
       __typename: KeyManagement.KeyAgentType.Trezor,
       accountIndex: 0,
+      coinType: KeyManagement.AccountDerivationPathDefaults.CoinType,
       extendedAccountPublicKey: Cardano.Bip32PublicKey(
         // eslint-disable-next-line max-len
         'fc5ab25e830b67c47d0a17411bf7fdabf711a597fb6cf04102734b0a2934ceaaa65ff5e7c52498d52c07b8ddfcd436fc2b4d2775e2984a49d0c79f65ceee4779'
       ),
       knownAddresses: [
         {
-          accountIndex: 0,
           address: Cardano.Address(
             'addr1qx52knza2h5x090n4a5r7yraz3pwcamk9ppvuh7e26nfks7pnmhxqavtqy02zezklh27jt9r6z62sav3mugappdc7xnskxy2pn'
           ),
-          index: 0,
+          derivationPath: {
+            accountIndex: 0,
+            coinType: KeyManagement.AccountDerivationPathDefaults.CoinType,
+            index: 0,
+            purpose: KeyManagement.AccountDerivationPathDefaults.Purpose,
+            type: KeyManagement.AddressType.External
+          },
           networkId: Cardano.NetworkId.mainnet,
-          rewardAccount: Cardano.RewardAccount('stake1u89sasnfyjtmgk8ydqfv3fdl52f36x3djedfnzfc9rkgzrcss5vgr'),
-          type: KeyManagement.AddressType.External
+          rewardAccount: Cardano.RewardAccount('stake1u89sasnfyjtmgk8ydqfv3fdl52f36x3djedfnzfc9rkgzrcss5vgr')
         }
       ],
       networkId: 0,
       protocolMagic: 1_097_911_063,
+      purpose: KeyManagement.AccountDerivationPathDefaults.Purpose,
       trezorConfig: {
         communicationType: KeyManagement.CommunicationType.Node,
         manifest: {

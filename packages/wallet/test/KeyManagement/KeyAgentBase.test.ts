@@ -4,6 +4,8 @@ import { KeyManagement } from '../../src';
 
 const NETWORK_ID = Cardano.NetworkId.testnet;
 const ACCOUNT_INDEX = 1;
+const PURPOSE = KeyManagement.AccountDerivationPathDefaults.Purpose;
+const COIN_TYPE = KeyManagement.AccountDerivationPathDefaults.CoinType;
 
 class MockKeyAgent extends KeyManagement.KeyAgentBase {
   constructor(data: KeyManagement.SerializableInMemoryKeyAgentData) {
@@ -15,7 +17,7 @@ class MockKeyAgent extends KeyManagement.KeyAgentBase {
   exportRootPrivateKey = jest.fn();
   signTransaction = jest.fn();
   signVotingMetadata = jest.fn();
-  deriveCslPublicKeyPublic(derivationPath: KeyManagement.KeyDerivationPath) {
+  deriveCslPublicKeyPublic(derivationPath: KeyManagement.AccountKeyDerivationPath) {
     return this.deriveCslPublicKey(derivationPath);
   }
 }
@@ -27,13 +29,15 @@ describe('KeyAgentBase', () => {
     keyAgent = new MockKeyAgent({
       __typename: KeyManagement.KeyAgentType.InMemory,
       accountIndex: ACCOUNT_INDEX,
+      coinType: COIN_TYPE,
       encryptedRootPrivateKeyBytes: [],
       extendedAccountPublicKey: Cardano.Bip32PublicKey(
         // eslint-disable-next-line max-len
         'fc5ab25e830b67c47d0a17411bf7fdabf711a597fb6cf04102734b0a2934ceaaa65ff5e7c52498d52c07b8ddfcd436fc2b4d2775e2984a49d0c79f65ceee4779'
       ),
       knownAddresses: [],
-      networkId: NETWORK_ID
+      networkId: NETWORK_ID,
+      purpose: PURPOSE
     });
   });
 
@@ -49,9 +53,12 @@ describe('KeyAgentBase', () => {
     const index = 1;
     const type = KeyManagement.AddressType.External;
     const address = await keyAgent.deriveAddress({ index, type });
-    expect(address.index).toBe(index);
-    expect(address.type).toBe(type);
-    expect(address.accountIndex).toBe(ACCOUNT_INDEX);
+
+    expect(address.derivationPath.index).toBe(index);
+    expect(address.derivationPath.type).toBe(type);
+    expect(address.derivationPath.accountIndex).toBe(ACCOUNT_INDEX);
+    expect(address.derivationPath.coinType).toBe(COIN_TYPE);
+    expect(address.derivationPath.purpose).toBe(PURPOSE);
     expect(address.networkId).toBe(NETWORK_ID);
     expect(address.address.startsWith('addr_test')).toBe(true);
     expect(address.rewardAccount.startsWith('stake_test')).toBe(true);

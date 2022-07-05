@@ -1,4 +1,4 @@
-import { Cardano } from '@cardano-sdk/core';
+import { CSL, Cardano } from '@cardano-sdk/core';
 import { CardanoKeyConst } from './util';
 import { Observable } from 'rxjs';
 import { Shutdown } from '@cardano-sdk/util';
@@ -64,15 +64,15 @@ export interface AccountDerivationPath {
   coinType: number;
 }
 
-export type KeyDerivationPath = {
+export type AccountKeyDerivationPath = {
   role: KeyRole;
   index: number;
-} & Partial<AccountDerivationPath>;
+};
 
-export type AddressDerivationPath = {
+export type AccountAddressDerivationPath = {
   type: AddressType;
   index: number;
-} & Partial<AccountDerivationPath>;
+};
 
 export interface GroupedAddress {
   networkId: Cardano.NetworkId;
@@ -102,6 +102,8 @@ export type AgentSpecificData = number[] | null;
 export interface SerializableKeyAgentDataBase {
   networkId: Cardano.NetworkId;
   accountIndex: number;
+  purpose: number;
+  coinType: number;
   knownAddresses: GroupedAddress[];
   extendedAccountPublicKey: Cardano.Bip32PublicKey;
 }
@@ -143,7 +145,7 @@ export type ResolveInputAddress = (txIn: Cardano.NewTxIn) => Promise<Cardano.Add
 
 export interface SignTransactionOptions {
   inputAddressResolver: ResolveInputAddress;
-  additionalKeyPaths?: KeyDerivationPath[];
+  additionalKeyPaths?: AccountKeyDerivationPath[];
 }
 
 export interface SignVotingMetadataProps {
@@ -153,15 +155,25 @@ export interface SignVotingMetadataProps {
   nonce: number;
 }
 
+export interface DeriveAccountPrivateKeyProps {
+  rootPrivateKey: CSL.Bip32PrivateKey;
+  accountIndex: number;
+  purpose?: number;
+  coinType?: number;
+}
+
 export interface KeyAgent {
   get networkId(): Cardano.NetworkId;
+  get accountIndex(): number;
+  get purpose(): number;
+  get coinType(): number;
   get serializableData(): SerializableKeyAgentData;
   get knownAddresses(): GroupedAddress[];
   get extendedAccountPublicKey(): Cardano.Bip32PublicKey;
   /**
    * @throws AuthenticationError
    */
-  signBlob(derivationPath: KeyDerivationPath, blob: Cardano.util.HexBlob): Promise<SignBlobResult>;
+  signBlob(derivationPath: AccountKeyDerivationPath, blob: Cardano.util.HexBlob): Promise<SignBlobResult>;
   /**
    * @throws AuthenticationError
    */
@@ -169,11 +181,11 @@ export interface KeyAgent {
   /**
    * @throws AuthenticationError
    */
-  derivePublicKey(derivationPath: KeyDerivationPath): Promise<Cardano.Ed25519PublicKey>;
+  derivePublicKey(derivationPath: AccountKeyDerivationPath): Promise<Cardano.Ed25519PublicKey>;
   /**
    * @throws AuthenticationError
    */
-  deriveAddress(derivationPath: AddressDerivationPath): Promise<GroupedAddress>;
+  deriveAddress(derivationPath: AccountAddressDerivationPath): Promise<GroupedAddress>;
   /**
    * @throws AuthenticationError
    */

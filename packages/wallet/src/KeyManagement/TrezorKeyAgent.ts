@@ -121,11 +121,11 @@ export class TrezorKeyAgent extends KeyAgentBase {
    */
   static async createWithDevice({
     networkId,
-    accountIndex = 0,
     protocolMagic,
     trezorConfig,
-    purpose,
-    coinType
+    accountIndex = AccountDerivationPathDefaults.AccountIndex,
+    purpose = AccountDerivationPathDefaults.Purpose,
+    coinType = AccountDerivationPathDefaults.CoinType
   }: CreateTrezorKeyAgentProps) {
     const isTrezorInitialized = await TrezorKeyAgent.initializeTrezorTransport(trezorConfig);
     const extendedAccountPublicKey = await TrezorKeyAgent.getXpub({
@@ -135,11 +135,13 @@ export class TrezorKeyAgent extends KeyAgentBase {
     });
     return new TrezorKeyAgent({
       accountIndex,
+      coinType,
       extendedAccountPublicKey,
       isTrezorInitialized,
       knownAddresses: [],
       networkId,
       protocolMagic,
+      purpose,
       trezorConfig
     });
   }

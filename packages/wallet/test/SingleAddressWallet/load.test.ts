@@ -34,12 +34,16 @@ const createWallet = async (stores: WalletStores, providers: Providers) => {
   const assetProvider = mocks.mockAssetProvider();
   const stakePoolProvider = createStubStakePoolProvider();
   const groupedAddress: KeyManagement.GroupedAddress = {
-    accountIndex: 0,
     address,
-    index: 0,
+    derivationPath: {
+      accountIndex: 0,
+      coinType: KeyManagement.AccountDerivationPathDefaults.CoinType,
+      index: 0,
+      purpose: KeyManagement.AccountDerivationPathDefaults.Purpose,
+      type: KeyManagement.AddressType.External
+    },
     networkId: Cardano.NetworkId.testnet,
-    rewardAccount,
-    type: KeyManagement.AddressType.External
+    rewardAccount
   };
   const keyAgent = await mocks.testAsyncKeyAgent([groupedAddress]);
   keyAgent.deriveAddress = jest.fn().mockResolvedValue(groupedAddress);

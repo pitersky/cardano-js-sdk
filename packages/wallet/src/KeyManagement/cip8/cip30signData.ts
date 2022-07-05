@@ -1,3 +1,4 @@
+import { AccountKeyDerivationPath } from '..';
 import {
   AlgorithmId,
   CBORValue,
@@ -16,7 +17,6 @@ import { Cardano, parseCslAddress, util } from '@cardano-sdk/core';
 import { Cip30DataSignature } from '@cardano-sdk/cip30';
 import { CoseLabel } from './util';
 import { CustomError } from 'ts-custom-error';
-import { KeyDerivationPath } from '..';
 import { STAKE_KEY_DERIVATION_PATH } from '../util';
 import { firstValueFrom } from 'rxjs';
 
@@ -71,7 +71,11 @@ const createSigStructureHeaders = (addressBytes: Uint8Array) => {
   return protectedHeaders;
 };
 
-const signSigStructure = (keyAgent: AsyncKeyAgent, derivationPath: KeyDerivationPath, sigStructure: SigStructure) => {
+const signSigStructure = (
+  keyAgent: AsyncKeyAgent,
+  derivationPath: AccountKeyDerivationPath,
+  sigStructure: SigStructure
+) => {
   try {
     return keyAgent.signBlob(derivationPath, util.bytesToHex(sigStructure.to_bytes()));
   } catch (error) {

@@ -206,11 +206,11 @@ export class LedgerKeyAgent extends KeyAgentBase {
   static async createWithDevice({
     networkId,
     protocolMagic,
-    accountIndex = 0,
     communicationType,
     deviceConnection,
-    purpose,
-    coinType
+    accountIndex = AccountDerivationPathDefaults.AccountIndex,
+    purpose = AccountDerivationPathDefaults.Purpose,
+    coinType = AccountDerivationPathDefaults.CoinType
   }: CreateLedgerKeyAgentProps) {
     const deviceListPaths = await LedgerKeyAgent.getHidDeviceList(communicationType);
     // Re-use device connection if you want to create a key agent with new / additional account(s) and pass accountIndex
@@ -219,20 +219,22 @@ export class LedgerKeyAgent extends KeyAgentBase {
       : LedgerKeyAgent.establishDeviceConnection(communicationType, deviceListPaths[0]));
     const extendedAccountPublicKey = await LedgerKeyAgent.getXpub({
       accountIndex,
-      coinType: coinType || AccountDerivationPathDefaults.CoinType,
+      coinType,
       communicationType,
       deviceConnection: activeDeviceConnection,
-      purpose: purpose || AccountDerivationPathDefaults.Purpose
+      purpose
     });
 
     return new LedgerKeyAgent({
       accountIndex,
+      coinType,
       communicationType,
       deviceConnection: activeDeviceConnection,
       extendedAccountPublicKey,
       knownAddresses: [],
       networkId,
-      protocolMagic
+      protocolMagic,
+      purpose
     });
   }
 

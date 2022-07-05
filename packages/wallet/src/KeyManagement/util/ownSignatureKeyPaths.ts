@@ -1,18 +1,18 @@
+import { AccountKeyDerivationPath, GroupedAddress, KeyRole, ResolveInputAddress } from '../types';
 import { Cardano } from '@cardano-sdk/core';
-import { GroupedAddress, KeyDerivationPath, KeyRole, ResolveInputAddress } from '../types';
 import { isNotNil } from '@cardano-sdk/util';
 import uniq from 'lodash/uniq';
 
 /**
  * Assumes that a single staking key is used for all addresses (index=0)
  *
- * @returns {KeyDerivationPath[]} derivation paths for keys to sign transaction with
+ * @returns {AccountKeyDerivationPath[]} derivation paths for keys to sign transaction with
  */
 export const ownSignatureKeyPaths = async (
   txBody: Cardano.NewTxBodyAlonzo,
   knownAddresses: GroupedAddress[],
   resolveInputAddress: ResolveInputAddress
-): Promise<KeyDerivationPath[]> => {
+): Promise<AccountKeyDerivationPath[]> => {
   const paymentKeyPaths = uniq(
     (
       await Promise.all(
