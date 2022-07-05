@@ -2,7 +2,7 @@ import { CommonOptionDescriptions } from '../ProgramsCommon';
 
 enum HttpServerOptionDescriptions {
   ApiUrl = 'API URL',
-  DbConnection = 'DB Connection',
+  DbConnection = 'DB Connection string',
   MetricsEnabled = 'Enable Prometheus Metrics',
   OgmiosUrl = 'Ogmios URL',
   RabbitMQUrl = 'RabbitMQ URL',

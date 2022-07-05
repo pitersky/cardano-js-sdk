@@ -38,6 +38,10 @@ export interface ProgramArgs {
     | ServiceNames.NetworkInfo
     | ServiceNames.Rewards
   )[];
+  /*
+    TODO: optimize passed options -> 'options' is always passed by default and shouldn't be optional field,
+    no need to check it with '.?' everywhere.Will be fixed within ADP-1990
+  */
   options?: HttpServerOptions;
 }
 
@@ -99,7 +103,6 @@ export const loadHttpServer = async (args: ProgramArgs): Promise<HttpServer> => 
 
   const cache = new InMemoryCache(args.options?.dbQueriesCacheTtl);
   const db = await getPool(logger, cache, args.options);
-
   const serviceMap = serviceMapFactory(args, logger, cache, db);
 
   for (const serviceName of args.serviceNames) {

@@ -69,7 +69,7 @@ export const getSrvPool = async (
   logger: Logger
 ): Promise<Pool> => {
   const resolvedAddress = await resolveDnsSrvWithExponentialBackoff(host!, retryConfig, cache, logger);
-  let pool: Pool = new Pool({ database, host, password, port: resolvedAddress.port, user });
+  let pool = new Pool({ database, host, password, port: resolvedAddress.port, user });
 
   return new Proxy<Pool>({} as Pool, {
     get(_, prop) {
@@ -104,7 +104,6 @@ export const getPool = async (
       ProgramOptionDescriptions.PostgresSrvServiceName
     );
   if (options?.dbConnectionString) return new Pool({ connectionString: options.dbConnectionString });
-  // TODO: optimize passed options -> 'options' is required by default, no need to check it .? everywhere
   if (options?.postgresSrvServiceName && options?.postgresUser && options.postgresName && options.postgresPassword) {
     return getSrvPool(
       {
@@ -122,6 +121,9 @@ export const getPool = async (
   return undefined;
 };
 
+export const srvAddressToOgmiosConnectionConfig = ({ name, port }: SrvRecord) => ({ host: name, port });
+export const srvAddressToRabbitmqURL = (srvRecord: SrvRecord) => new URL(`amqp://${srvRecord.name}:${srvRecord.port}`);
+
 export const getSrvOgmiosTxSubmitProvider = async (
   serviceName: string,
   retryConfig: RetryBackoffConfig,
@@ -129,7 +131,7 @@ export const getSrvOgmiosTxSubmitProvider = async (
   logger: Logger
 ): Promise<TxSubmitProvider> => {
   const resolvedAddress = await resolveDnsSrvWithExponentialBackoff(serviceName!, retryConfig, cache, logger);
-  let ogmiosProvider: TxSubmitProvider = ogmiosTxSubmitProvider(resolvedAddress);
+  let ogmiosProvider = ogmiosTxSubmitProvider(srvAddressToOgmiosConnectionConfig(resolvedAddress));
 
   return new Proxy<TxSubmitProvider>({} as TxSubmitProvider, {
     get(_, prop) {
@@ -178,8 +180,6 @@ export const getCardanoNodeProvider = async (
   ]);
 };
 
-export const srvAddressToRabbitmqURL = (srvRecord: SrvRecord) => new URL(`amqp://${srvRecord.name}:${srvRecord.port}`);
-
 export const getSrvRabbitMqTxSubmitProvider = async (
   serviceName: string,
   retryConfig: RetryBackoffConfig,
@@ -187,7 +187,7 @@ export const getSrvRabbitMqTxSubmitProvider = async (
   logger: Logger
 ): Promise<RabbitMqTxSubmitProvider> => {
   const resolvedAddress = await resolveDnsSrvWithExponentialBackoff(serviceName!, retryConfig, cache, logger);
-  let rabbitmqProvider: RabbitMqTxSubmitProvider = new RabbitMqTxSubmitProvider({
+  let rabbitmqProvider = new RabbitMqTxSubmitProvider({
     rabbitmqUrl: srvAddressToRabbitmqURL(resolvedAddress)
   });
 
