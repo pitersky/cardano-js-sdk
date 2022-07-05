@@ -56,8 +56,12 @@ const mapCallbackFailure = (err: unknown, logger?: Logger) => {
   return false;
 };
 
+// Review: I suggest we export a minimal wallet type required by cip30
+// that Lace could use as a base to extend.
+export type ObservableWalletRequiredByCip30 = ObservableWallet;
+
 export const createWalletApi = (
-  walletReady: Promise<ObservableWallet>,
+  walletReady: Promise<ObservableWalletRequiredByCip30>,
   confirmationCallback: CallbackConfirmation,
   { logger = dummyLogger }: Cip30WalletDependencies = {}
 ): WalletApi => ({
