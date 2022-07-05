@@ -125,6 +125,7 @@ export class SingleAddressWallet implements ObservableWallet {
   readonly util: WalletUtil;
   readonly rewardsProvider: TrackedRewardsProvider;
 
+  // eslint-disable-next-line max-statements
   constructor(
     {
       name,
