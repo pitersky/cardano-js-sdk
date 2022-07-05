@@ -173,6 +173,10 @@ export interface KeyAgent {
   /**
    * @throws AuthenticationError
    */
+  squashAccount(derivationPath: AccountDerivationPath): Promise<KeyAgent>;
+  /**
+   * @throws AuthenticationError
+   */
   signBlob(derivationPath: AccountKeyDerivationPath, blob: Cardano.util.HexBlob): Promise<SignBlobResult>;
   /**
    * @throws AuthenticationError

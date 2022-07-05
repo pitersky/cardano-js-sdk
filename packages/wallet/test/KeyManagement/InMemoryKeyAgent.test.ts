@@ -78,6 +78,18 @@ describe('InMemoryKeyAgent', () => {
     expect(typeof keyAgent.extendedAccountPublicKey).toBe('string');
   });
 
+  it('can squash account', async () => {
+    const derivationPath = {
+      accountIndex: 5,
+      coinType: KeyManagement.AccountDerivationPathDefaults.CoinType,
+      purpose: KeyManagement.AccountDerivationPathDefaults.Purpose
+    };
+    const squashedAccountKeyAgent = await keyAgent.squashAccount(derivationPath);
+    expect(squashedAccountKeyAgent.purpose).toEqual(derivationPath.purpose);
+    expect(squashedAccountKeyAgent.coinType).toEqual(derivationPath.coinType);
+    expect(squashedAccountKeyAgent.accountIndex).toEqual(derivationPath.accountIndex);
+  });
+
   test('signBlob', async () => {
     const { publicKey, signature } = await keyAgent.signBlob(
       { index: 0, role: KeyManagement.KeyRole.Internal },

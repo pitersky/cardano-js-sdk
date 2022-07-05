@@ -2,6 +2,7 @@
 import {
   AccountDerivationPathDefaults,
   CommunicationType,
+  KeyAgent,
   KeyAgentType,
   LedgerTransportType,
   SerializableLedgerKeyAgentData,
@@ -288,5 +289,9 @@ export class LedgerKeyAgent extends KeyAgentBase {
 
   async signVotingMetadata(): Promise<Cardano.Ed25519Signature> {
     throw new NotImplementedError('signVotingMetadata');
+  }
+
+  async squashAccount(): Promise<KeyAgent> {
+    throw new NotImplementedError('squashAccount');
   }
 }

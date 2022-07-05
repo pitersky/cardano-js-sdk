@@ -1,8 +1,10 @@
 import * as errors from './errors';
 import {
+  AccountDerivationPath,
   AccountDerivationPathDefaults,
   AccountKeyDerivationPath,
   GetPassword,
+  KeyAgent,
   KeyAgentType,
   SerializableInMemoryKeyAgentData,
   SignBlobResult,
@@ -53,6 +55,31 @@ export class InMemoryKeyAgent extends KeyAgentBase {
   constructor({ getPassword, ...serializableData }: InMemoryKeyAgentProps) {
     super({ ...serializableData, __typename: KeyAgentType.InMemory });
     this.#getPassword = getPassword;
+  }
+
+  async squashAccount({ purpose, coinType, accountIndex }: AccountDerivationPath): Promise<KeyAgent> {
+    const rootPrivateKey = await this.#decryptRootPrivateKey();
+    const accountPrivateKey = deriveAccountPrivateKey({
+      accountIndex,
+      coinType,
+      purpose,
+      rootPrivateKey
+    });
+    const password = await getPasswordRethrowTypedError(this.#getPassword);
+    const encryptedRootPrivateKey = await emip3encrypt(rootPrivateKey.as_bytes(), password);
+    const extendedAccountPublicKey = Cardano.Bip32PublicKey(
+      Buffer.from(accountPrivateKey.to_public().as_bytes()).toString('hex')
+    );
+    return new InMemoryKeyAgent({
+      accountIndex,
+      coinType,
+      encryptedRootPrivateKeyBytes: [...encryptedRootPrivateKey],
+      extendedAccountPublicKey,
+      getPassword: this.#getPassword,
+      knownAddresses: [],
+      networkId: this.networkId,
+      purpose
+    });
   }
 
   async signBlob({ index, role: type }: AccountKeyDerivationPath, blob: Cardano.util.HexBlob): Promise<SignBlobResult> {

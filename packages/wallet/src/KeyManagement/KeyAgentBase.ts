@@ -1,5 +1,6 @@
 import {
   AccountAddressDerivationPath,
+  AccountDerivationPath,
   AccountKeyDerivationPath,
   GroupedAddress,
   KeyAgent,
@@ -40,6 +41,7 @@ export abstract class KeyAgentBase implements KeyAgent {
   get coinType(): number {
     return this.serializableData.coinType;
   }
+  abstract squashAccount(derivationPath: AccountDerivationPath): Promise<KeyAgent>;
   abstract signBlob(derivationPath: AccountKeyDerivationPath, blob: Cardano.util.HexBlob): Promise<SignBlobResult>;
   abstract exportRootPrivateKey(): Promise<Cardano.Bip32PrivateKey>;
   abstract signTransaction(
