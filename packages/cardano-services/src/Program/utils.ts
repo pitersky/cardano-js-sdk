@@ -17,9 +17,9 @@ export const RETRY_BACKOFF_FACTOR_DEFAULT = 1.1;
 export const RETRY_BACKOFF_MAX_TIMEOUT_DEFAULT = 60 * 1000;
 export const DNS_SRV_ADDRESS_CACHE_KEY = 'dns_srv_address_resolution';
 
-type RetryBackoffConfig = {
-  factor: number;
-  maxRetryTime: number;
+export type RetryBackoffConfig = {
+  factor?: number;
+  maxRetryTime?: number;
 };
 
 export const onFailedAttemptFor =
@@ -30,9 +30,8 @@ export const onFailedAttemptFor =
     logger.debug(`${operation}: Attempt ${attemptNumber} of ${attemptNumber + retriesLeft}, ${nextAction}`);
     if (retriesLeft === 0) {
       logger.error(message);
-      // await server.shutdown(); ?
-      // eslint-disable-next-line unicorn/no-process-exit
-      process.exit(1);
+      // Invokes onDeath() callback within cardano-services entrypoints, following by server.shutdown() and process.exit(1)
+      process.kill(process.pid, 'SIGTERM');
     }
   };
 
@@ -42,33 +41,29 @@ export const getRandomAddressWithDnsSrv = async (serviceName: string) => {
 };
 
 // Get a random selection of dns resolved service address and make it sticky for reconnects by storing a reference in memory
-export const resolveDnsSrvWithExponentialBackoff = async (
-  serviceName: string,
-  config: RetryBackoffConfig,
-  cache: InMemoryCache,
-  logger: Logger
-) =>
-  await pRetry(
-    async () =>
-      await cache.get(
-        `${DNS_SRV_ADDRESS_CACHE_KEY}/${serviceName}`,
-        () => getRandomAddressWithDnsSrv(serviceName),
-        UNLIMITED_CACHE_TTL
-      ),
-    {
-      factor: config.factor,
-      maxRetryTime: config.maxRetryTime,
-      onFailedAttempt: onFailedAttemptFor(`Establishing connection to ${serviceName}`, logger)
-    }
-  );
+export const getDnsSrvResolveWithExponentialBackoff =
+  (config: RetryBackoffConfig, cache: InMemoryCache, logger: Logger) => async (serviceName: string) =>
+    await pRetry(
+      async () =>
+        await cache.get(
+          `${DNS_SRV_ADDRESS_CACHE_KEY}/${serviceName}`,
+          () => getRandomAddressWithDnsSrv(serviceName),
+          UNLIMITED_CACHE_TTL
+        ),
+      {
+        factor: config.factor,
+        maxRetryTime: config.maxRetryTime,
+        onFailedAttempt: onFailedAttemptFor(`Establishing connection to ${serviceName}`, logger)
+      }
+    );
+
+export type DnsSrvResolve = ReturnType<typeof getDnsSrvResolveWithExponentialBackoff>;
 
 export const getSrvPool = async (
-  { host, database, password, user }: ClientConfig,
-  retryConfig: RetryBackoffConfig,
-  cache: InMemoryCache,
-  logger: Logger
+  dnsSrvResolve: DnsSrvResolve,
+  { host, database, password, user }: ClientConfig
 ): Promise<Pool> => {
-  const resolvedAddress = await resolveDnsSrvWithExponentialBackoff(host!, retryConfig, cache, logger);
+  const resolvedAddress = await dnsSrvResolve(host!);
   let pool = new Pool({ database, host, password, port: resolvedAddress.port, user });
 
   return new Proxy<Pool>({} as Pool, {
@@ -78,7 +73,7 @@ export const getSrvPool = async (
         return (args: string | QueryConfig, values?: any) =>
           pool.query(args, values).catch(async (error) => {
             if (error.code && ['ENOTFOUND', 'ECONNREFUSED'].includes(error.code)) {
-              const address = await resolveDnsSrvWithExponentialBackoff(host!, retryConfig, cache, logger);
+              const address = await dnsSrvResolve(host!);
               pool = new Pool({ database, host, password, port: address.port, user });
               return await pool.query(args, values);
             }
@@ -93,11 +88,7 @@ export const getSrvPool = async (
   });
 };
 
-export const getPool = async (
-  logger: Logger,
-  cache: InMemoryCache,
-  options?: HttpServerOptions
-): Promise<Pool | undefined> => {
+export const getPool = async (dnsSrvResolve: DnsSrvResolve, options?: HttpServerOptions): Promise<Pool | undefined> => {
   if (options?.dbConnectionString && options.postgresSrvServiceName)
     throw new InvalidArgsCombination(
       ProgramOptionDescriptions.DbConnection,
@@ -105,17 +96,12 @@ export const getPool = async (
     );
   if (options?.dbConnectionString) return new Pool({ connectionString: options.dbConnectionString });
   if (options?.postgresSrvServiceName && options?.postgresUser && options.postgresName && options.postgresPassword) {
-    return getSrvPool(
-      {
-        database: options.postgresName,
-        host: options.postgresSrvServiceName,
-        password: options.postgresPassword,
-        user: options.postgresUser
-      },
-      { factor: options.serviceDiscoveryBackoffFactor, maxRetryTime: options.serviceDiscoveryTimeout },
-      cache,
-      logger
-    );
+    return getSrvPool(dnsSrvResolve, {
+      database: options.postgresName,
+      host: options.postgresSrvServiceName,
+      password: options.postgresPassword,
+      user: options.postgresUser
+    });
   }
   // If db connection string nor srv db credentials are being passed
   return undefined;
@@ -125,12 +111,10 @@ export const srvAddressToOgmiosConnectionConfig = ({ name, port }: SrvRecord) =>
 export const srvAddressToRabbitmqURL = (srvRecord: SrvRecord) => new URL(`amqp://${srvRecord.name}:${srvRecord.port}`);
 
 export const getSrvOgmiosTxSubmitProvider = async (
-  serviceName: string,
-  retryConfig: RetryBackoffConfig,
-  cache: InMemoryCache,
-  logger: Logger
+  dnsSrvResolve: DnsSrvResolve,
+  serviceName: string
 ): Promise<TxSubmitProvider> => {
-  const resolvedAddress = await resolveDnsSrvWithExponentialBackoff(serviceName!, retryConfig, cache, logger);
+  const resolvedAddress = await dnsSrvResolve(serviceName!);
   let ogmiosProvider = ogmiosTxSubmitProvider(srvAddressToOgmiosConnectionConfig(resolvedAddress));
 
   return new Proxy<TxSubmitProvider>({} as TxSubmitProvider, {
@@ -140,7 +124,7 @@ export const getSrvOgmiosTxSubmitProvider = async (
         return (args: Uint8Array) =>
           ogmiosProvider.submitTx(args).catch(async (error) => {
             if (error.code && ['ENOTFOUND', 'ECONNREFUSED'].includes(error.code)) {
-              const address = await resolveDnsSrvWithExponentialBackoff(serviceName!, retryConfig, cache, logger);
+              const address = await dnsSrvResolve(serviceName!);
               ogmiosProvider = ogmiosTxSubmitProvider(address);
               return await ogmiosProvider.submitTx(args);
             }
@@ -156,8 +140,7 @@ export const getSrvOgmiosTxSubmitProvider = async (
 };
 
 export const getCardanoNodeProvider = async (
-  logger: Logger,
-  cache: InMemoryCache,
+  dnsSrvResolve: DnsSrvResolve,
   options?: HttpServerOptions
 ): Promise<TxSubmitProvider> => {
   if (options?.ogmiosUrl && options.ogmiosSrvServiceName)
@@ -167,12 +150,7 @@ export const getCardanoNodeProvider = async (
     );
   if (options?.ogmiosUrl) return ogmiosTxSubmitProvider(urlToConnectionConfig(options?.ogmiosUrl));
   if (options?.ogmiosSrvServiceName) {
-    return getSrvOgmiosTxSubmitProvider(
-      options.ogmiosSrvServiceName,
-      { factor: options.serviceDiscoveryBackoffFactor, maxRetryTime: options.serviceDiscoveryTimeout },
-      cache,
-      logger
-    );
+    return getSrvOgmiosTxSubmitProvider(dnsSrvResolve, options.ogmiosSrvServiceName);
   }
   throw new MissingProgramOption(ServiceNames.TxSubmit, [
     ProgramOptionDescriptions.OgmiosUrl,
@@ -181,12 +159,10 @@ export const getCardanoNodeProvider = async (
 };
 
 export const getSrvRabbitMqTxSubmitProvider = async (
-  serviceName: string,
-  retryConfig: RetryBackoffConfig,
-  cache: InMemoryCache,
-  logger: Logger
+  dnsSrvResolve: DnsSrvResolve,
+  serviceName: string
 ): Promise<RabbitMqTxSubmitProvider> => {
-  const resolvedAddress = await resolveDnsSrvWithExponentialBackoff(serviceName!, retryConfig, cache, logger);
+  const resolvedAddress = await dnsSrvResolve(serviceName!);
   let rabbitmqProvider = new RabbitMqTxSubmitProvider({
     rabbitmqUrl: srvAddressToRabbitmqURL(resolvedAddress)
   });
@@ -198,7 +174,7 @@ export const getSrvRabbitMqTxSubmitProvider = async (
         return (args: Uint8Array) =>
           rabbitmqProvider.submitTx(args).catch(async (error) => {
             if (error.code && ['ENOTFOUND', 'ECONNREFUSED'].includes(error.code)) {
-              const address = await resolveDnsSrvWithExponentialBackoff(serviceName!, retryConfig, cache, logger);
+              const address = await dnsSrvResolve(serviceName!);
               rabbitmqProvider = new RabbitMqTxSubmitProvider({ rabbitmqUrl: srvAddressToRabbitmqURL(address) });
               return await rabbitmqProvider.submitTx(args);
             }
@@ -214,8 +190,7 @@ export const getSrvRabbitMqTxSubmitProvider = async (
 };
 
 export const getRabbitMqTxSubmitProvider = async (
-  logger: Logger,
-  cache: InMemoryCache,
+  dnsSrvResolve: DnsSrvResolve,
   options?: HttpServerOptions
 ): Promise<RabbitMqTxSubmitProvider> => {
   if (options?.rabbitmqUrl && options.rabbitmqSrvServiceName)
@@ -225,12 +200,7 @@ export const getRabbitMqTxSubmitProvider = async (
     );
   if (options?.rabbitmqUrl) return new RabbitMqTxSubmitProvider({ rabbitmqUrl: options.rabbitmqUrl });
   if (options?.rabbitmqSrvServiceName) {
-    return getSrvRabbitMqTxSubmitProvider(
-      options.rabbitmqSrvServiceName,
-      { factor: options.serviceDiscoveryBackoffFactor, maxRetryTime: options.serviceDiscoveryTimeout },
-      cache,
-      logger
-    );
+    return getSrvRabbitMqTxSubmitProvider(dnsSrvResolve, options.rabbitmqSrvServiceName);
   }
   throw new MissingProgramOption(ServiceNames.TxSubmit, [
     ProgramOptionDescriptions.RabbitMQUrl,

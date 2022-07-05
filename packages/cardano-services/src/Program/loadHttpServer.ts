@@ -6,6 +6,13 @@ import { DbSyncNetworkInfoProvider, NetworkInfoHttpService } from '../NetworkInf
 import { DbSyncRewardsProvider, RewardsHttpService } from '../Rewards';
 import { DbSyncStakePoolProvider, StakePoolHttpService } from '../StakePool';
 import { DbSyncUtxoProvider, UtxoHttpService } from '../Utxo';
+import {
+  DnsSrvResolve,
+  getCardanoNodeProvider,
+  getDnsSrvResolveWithExponentialBackoff,
+  getPool,
+  getRabbitMqTxSubmitProvider
+} from './utils';
 import { HttpServer, HttpServerConfig, HttpService } from '../Http';
 import { InMemoryCache } from '../InMemoryCache';
 import { MissingProgramOption, UnknownServiceName } from './errors';
@@ -13,7 +20,6 @@ import { ProgramOptionDescriptions } from './ProgramOptionDescriptions';
 import { ServiceNames } from './ServiceNames';
 import { TxSubmitHttpService } from '../TxSubmit';
 import { createDbSyncMetadataService } from '../Metadata';
-import { getCardanoNodeProvider, getPool, getRabbitMqTxSubmitProvider } from './utils';
 import Logger, { createLogger } from 'bunyan';
 import pg from 'pg';
 
@@ -45,7 +51,13 @@ export interface ProgramArgs {
   options?: HttpServerOptions;
 }
 
-const serviceMapFactory = (args: ProgramArgs, logger: Logger, cache: InMemoryCache, db?: pg.Pool) => ({
+const serviceMapFactory = (
+  args: ProgramArgs,
+  logger: Logger,
+  cache: InMemoryCache,
+  dnsSrvResolve: DnsSrvResolve,
+  db?: pg.Pool
+) => ({
   [ServiceNames.StakePool]: () => {
     if (!db) throw new MissingProgramOption(ServiceNames.StakePool, ProgramOptionDescriptions.DbConnection);
 
@@ -87,8 +99,8 @@ const serviceMapFactory = (args: ProgramArgs, logger: Logger, cache: InMemoryCac
   },
   [ServiceNames.TxSubmit]: async () => {
     const txSubmitProvider = args.options?.useQueue
-      ? await getRabbitMqTxSubmitProvider(logger, cache, args.options)
-      : await getCardanoNodeProvider(logger, cache, args.options);
+      ? await getRabbitMqTxSubmitProvider(dnsSrvResolve, args.options)
+      : await getCardanoNodeProvider(dnsSrvResolve, args.options);
 
     return new TxSubmitHttpService({ logger, txSubmitProvider });
   }
@@ -102,8 +114,16 @@ export const loadHttpServer = async (args: ProgramArgs): Promise<HttpServer> => 
   });
 
   const cache = new InMemoryCache(args.options?.dbQueriesCacheTtl);
-  const db = await getPool(logger, cache, args.options);
-  const serviceMap = serviceMapFactory(args, logger, cache, db);
+  const dnsSrvResolve = getDnsSrvResolveWithExponentialBackoff(
+    {
+      factor: args.options?.serviceDiscoveryBackoffFactor,
+      maxRetryTime: args.options?.serviceDiscoveryTimeout
+    },
+    cache,
+    logger
+  );
+  const db = await getPool(dnsSrvResolve, args.options);
+  const serviceMap = serviceMapFactory(args, logger, cache, dnsSrvResolve, db);
 
   for (const serviceName of args.serviceNames) {
     if (serviceMap[serviceName]) {

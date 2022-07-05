@@ -133,7 +133,6 @@ describe('loadHttpServer', () => {
                 dbPollInterval,
                 dbQueriesCacheTtl,
                 postgresName: missingPostgresName,
-                postgresPassword,
                 postgresSrvServiceName,
                 postgresUser,
                 serviceDiscoveryBackoffFactor,
@@ -149,6 +148,12 @@ describe('loadHttpServer', () => {
           async () =>
             await loadHttpServer({
               apiUrl,
+              options: {
+                dbPollInterval,
+                dbQueriesCacheTtl,
+                serviceDiscoveryBackoffFactor,
+                serviceDiscoveryTimeout
+              },
               serviceNames: [ServiceNames.StakePool]
             })
         ).rejects.toThrow(MissingProgramOption);
@@ -195,6 +200,12 @@ describe('loadHttpServer', () => {
           async () =>
             await loadHttpServer({
               apiUrl,
+              options: {
+                dbPollInterval,
+                dbQueriesCacheTtl,
+                serviceDiscoveryBackoffFactor,
+                serviceDiscoveryTimeout
+              },
               serviceNames: [ServiceNames.TxSubmit]
             })
         ).rejects.toThrow(MissingProgramOption);
@@ -279,6 +290,12 @@ describe('loadHttpServer', () => {
         async () =>
           await loadHttpServer({
             apiUrl,
+            options: {
+              dbPollInterval,
+              dbQueriesCacheTtl,
+              serviceDiscoveryBackoffFactor,
+              serviceDiscoveryTimeout
+            },
             serviceNames: [ServiceNames.NetworkInfo]
           })
       ).rejects.toThrow(MissingProgramOption);

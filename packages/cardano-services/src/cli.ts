@@ -123,13 +123,19 @@ commonOptions(
   .option('--postgres-password <postgresPassword>', ProgramOptionDescriptions.DbConnection)
   .action(async (serviceNames: ServiceNames[], options: { apiUrl: URL } & HttpServerOptions) => {
     const { apiUrl, ...rest } = options;
-    const server = await loadHttpServer({ apiUrl: apiUrl || API_URL_DEFAULT, options: rest, serviceNames });
-    await server.initialize();
-    await server.start();
-    onDeath(async () => {
-      await server.shutdown();
+    try {
+      const server = await loadHttpServer({ apiUrl: apiUrl || API_URL_DEFAULT, options: rest, serviceNames });
+      await server.initialize();
+      await server.start();
+      onDeath(async () => {
+        await server.shutdown();
+        process.exit(1);
+      });
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(error);
       process.exit(1);
-    });
+    }
   });
 
 commonOptions(program.command('start-worker').description('Start RabbitMQ worker'))
