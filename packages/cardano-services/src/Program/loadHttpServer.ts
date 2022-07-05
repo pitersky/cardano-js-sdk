@@ -10,12 +10,10 @@ import { HttpServer, HttpServerConfig, HttpService } from '../Http';
 import { InMemoryCache } from '../InMemoryCache';
 import { MissingProgramOption, UnknownServiceName } from './errors';
 import { ProgramOptionDescriptions } from './ProgramOptionDescriptions';
-import { RabbitMqTxSubmitProvider } from '@cardano-sdk/rabbitmq';
 import { ServiceNames } from './ServiceNames';
 import { TxSubmitHttpService } from '../TxSubmit';
 import { createDbSyncMetadataService } from '../Metadata';
-import { getPool } from './utils';
-import { ogmiosTxSubmitProvider, urlToConnectionConfig } from '@cardano-sdk/ogmios';
+import { getCardanoNodeProvider, getPool, getRabbitMqTxSubmitProvider } from './utils';
 import Logger, { createLogger } from 'bunyan';
 import pg from 'pg';
 
@@ -83,11 +81,10 @@ const serviceMapFactory = (args: ProgramArgs, logger: Logger, cache: InMemoryCac
 
     return new NetworkInfoHttpService({ logger, networkInfoProvider });
   },
-  [ServiceNames.TxSubmit]: () => {
-    const txSubmitProvider =
-      args.options?.useQueue && args.options?.rabbitmqUrl
-        ? new RabbitMqTxSubmitProvider({ rabbitmqUrl: args.options.rabbitmqUrl })
-        : ogmiosTxSubmitProvider(urlToConnectionConfig(args.options?.ogmiosUrl));
+  [ServiceNames.TxSubmit]: async () => {
+    const txSubmitProvider = args.options?.useQueue
+      ? await getRabbitMqTxSubmitProvider(logger, args.options)
+      : await getCardanoNodeProvider(logger, args.options);
 
     return new TxSubmitHttpService({ logger, txSubmitProvider });
   }
@@ -108,7 +105,7 @@ export const loadHttpServer = async (args: ProgramArgs): Promise<HttpServer> => 
 
   for (const serviceName of args.serviceNames) {
     if (serviceMap[serviceName]) {
-      services.push(serviceMap[serviceName]());
+      services.push(await serviceMap[serviceName]());
     } else {
       throw new UnknownServiceName(serviceName);
     }

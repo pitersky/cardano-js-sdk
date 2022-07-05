@@ -115,7 +115,9 @@ commonOptions(
     RETRY_BACKOFF_MAX_TIMEOUT_DEFAULT
   )
   .option('--use-queue', ProgramOptionDescriptions.UseQueue, () => true, USE_QUEUE_DEFAULT)
-  .option('--postgres-srv-name <postgresSrvName>', ProgramOptionDescriptions.DbConnection)
+  .option('--rabbitmq-srv-service-name <rabbitmqSrvServiceName>', ProgramOptionDescriptions.RabbitMQSrvServiceName)
+  .option('--ogmios-srv-service-name <ogmiosSrvServiceName>', ProgramOptionDescriptions.OgmiosSrvServiceName)
+  .option('--postgres-srv-service-name <postgresSrvServiceName>', ProgramOptionDescriptions.PostgresSrvServiceName)
   .option('--postgres-name <postgresName>', ProgramOptionDescriptions.DbConnection)
   .option('--postgres-uid <postgresUser>', ProgramOptionDescriptions.DbConnection)
   .option('--postgres-password <postgresPassword>', ProgramOptionDescriptions.DbConnection)
