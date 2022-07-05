@@ -13,8 +13,8 @@ import Logger from 'bunyan';
 import dns, { SrvRecord } from 'dns';
 import pRetry, { FailedAttemptError } from 'p-retry';
 
-export const RETRY_BACKOFF_FACTOR_DEFAULT = 1.1;
-export const RETRY_BACKOFF_MAX_TIMEOUT_DEFAULT = 60 * 1000;
+export const SERVICE_DISCOVERY_BACKOFF_FACTOR_DEFAULT = 1.1;
+export const SERVICE_DISCOVERY_BACKOFF_MAX_TIMEOUT_DEFAULT = 60 * 1000;
 export const DNS_SRV_ADDRESS_CACHE_KEY = 'dns_srv_address_resolution';
 
 export type RetryBackoffConfig = {
@@ -59,6 +59,16 @@ export const getDnsSrvResolveWithExponentialBackoff =
 
 export type DnsSrvResolve = ReturnType<typeof getDnsSrvResolveWithExponentialBackoff>;
 
+/**
+ * Creates a extended Pool client :
+ * - use passed srv service name in order to resolve the port
+ * - make dealing with failovers (re-resolving the port) opaque
+ * - use exponential backoff retry internally with default timeout and factor
+ * - intercept 'query' operation and handle connection errors runtime
+ * - all other operations are bind to pool object withoud modifications
+ *
+ * @returns pg.Pool instance
+ */
 export const getSrvPool = async (
   dnsSrvResolve: DnsSrvResolve,
   { host, database, password, user }: ClientConfig
@@ -103,13 +113,23 @@ export const getPool = async (dnsSrvResolve: DnsSrvResolve, options?: HttpServer
       user: options.postgresUser
     });
   }
-  // If db connection string nor srv db credentials are being passed
+  // If db connection string is not passed nor postgres srv service name
   return undefined;
 };
 
 export const srvAddressToOgmiosConnectionConfig = ({ name, port }: SrvRecord) => ({ host: name, port });
 export const srvAddressToRabbitmqURL = (srvRecord: SrvRecord) => new URL(`amqp://${srvRecord.name}:${srvRecord.port}`);
 
+/**
+ * Creates a extended TxSubmitProvider instance :
+ * - use passed srv service name in order to resolve the port
+ * - make dealing with failovers (re-resolving the port) opaque
+ * - use exponential backoff retry internally with default timeout and factor
+ * - intercept 'submitTx' operation and handle connection errors runtime
+ * - all other operations are bind to pool object withoud modifications
+ *
+ * @returns TxSubmitProvider instance
+ */
 export const getSrvOgmiosTxSubmitProvider = async (
   dnsSrvResolve: DnsSrvResolve,
   serviceName: string
@@ -158,6 +178,16 @@ export const getCardanoNodeProvider = async (
   ]);
 };
 
+/**
+ * Creates a extended RabbitMqTxSubmitProvider instance :
+ * - use passed srv service name in order to resolve the port
+ * - make dealing with failovers (re-resolving the port) opaque
+ * - use exponential backoff retry internally with default timeout and factor
+ * - intercept 'submitTx' operation and handle connection errors runtime
+ * - all other operations are bind to pool object withoud modifications
+ *
+ * @returns RabbitMqTxSubmitProvider instance
+ */
 export const getSrvRabbitMqTxSubmitProvider = async (
   dnsSrvResolve: DnsSrvResolve,
   serviceName: string

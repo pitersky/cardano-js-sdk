@@ -4,8 +4,8 @@ import {
   API_URL_DEFAULT,
   OGMIOS_URL_DEFAULT,
   RABBITMQ_URL_DEFAULT,
-  RETRY_BACKOFF_FACTOR_DEFAULT,
-  RETRY_BACKOFF_MAX_TIMEOUT_DEFAULT,
+  SERVICE_DISCOVERY_BACKOFF_FACTOR_DEFAULT,
+  SERVICE_DISCOVERY_BACKOFF_MAX_TIMEOUT_DEFAULT,
   ServiceNames,
   loadHttpServer
 } from './Program';
@@ -34,8 +34,8 @@ const envSpecs = {
   POSTGRES_USER: envalid.str({ default: undefined }),
   RABBITMQ_SRV_SERVICE_NAME: envalid.str({ default: undefined }),
   RABBITMQ_URL: envalid.url({ default: RABBITMQ_URL_DEFAULT }),
-  SERVICE_DISCOVERY_BACKOFF_FACTOR: envalid.num({ default: RETRY_BACKOFF_FACTOR_DEFAULT }),
-  SERVICE_DISCOVERY_BACKOFF_MAX_TIMEOUT: envalid.num({ default: RETRY_BACKOFF_MAX_TIMEOUT_DEFAULT }),
+  SERVICE_DISCOVERY_BACKOFF_FACTOR: envalid.num({ default: SERVICE_DISCOVERY_BACKOFF_FACTOR_DEFAULT }),
+  SERVICE_DISCOVERY_BACKOFF_MAX_TIMEOUT: envalid.num({ default: SERVICE_DISCOVERY_BACKOFF_MAX_TIMEOUT_DEFAULT }),
   SERVICE_NAMES: envalid.str({ example: Object.values(ServiceNames).toString() }),
   USE_QUEUE: envalid.bool({ default: USE_QUEUE_DEFAULT })
 };
