@@ -435,6 +435,14 @@ describe('entrypoints', () => {
             stdio: 'pipe'
           }
         );
+        // eslint-disable-next-line no-console
+        console.log(proc);
+        // eslint-disable-next-line no-console
+        proc.on('error', (error) => console.log(error));
+        // eslint-disable-next-line no-console
+        proc.stderr!.on('data', (data) => console.log(data.toString()));
+        // eslint-disable-next-line no-console
+        proc.stdout!.on('data', (data) => console.log(data.toString()));
         await assertServiceHealthy(apiUrl, ServiceNames.TxSubmit);
       });
 
