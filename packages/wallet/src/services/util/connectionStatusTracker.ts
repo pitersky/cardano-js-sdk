@@ -1,4 +1,14 @@
-import { BehaviorSubject, Observable, distinctUntilChanged, fromEvent, map, merge, shareReplay, startWith } from 'rxjs';
+import {
+  BehaviorSubject,
+  Observable,
+  distinctUntilChanged,
+  fromEvent,
+  map,
+  merge,
+  of,
+  shareReplay,
+  startWith
+} from 'rxjs';
 
 export enum ConnectionStatus {
   down = 0,
@@ -8,10 +18,10 @@ export enum ConnectionStatus {
 export type ConnectionStatusTracker = Observable<ConnectionStatus>;
 
 export interface ConnectionStatusTrackerInternals {
-  isNodeEnv?: () => boolean;
-  online$?: () => Observable<unknown>;
-  offline$?: () => Observable<unknown>;
-  isOnline?: () => boolean;
+  isNodeEnv?: boolean;
+  online$?: Observable<unknown>;
+  offline$?: Observable<unknown>;
+  initialStatus?: boolean;
 }
 
 /**
@@ -21,18 +31,17 @@ export interface ConnectionStatusTrackerInternals {
  * @returns {ConnectionStatusTracker} ConnectionStatusTracker
  */
 export const createSimpleConnectionStatusTracker = ({
-  isNodeEnv = () => typeof window === 'undefined',
-  online$ = () => fromEvent(window, 'online'),
-  offline$ = () => fromEvent(window, 'offline'),
-  isOnline = () => navigator.onLine
+  isNodeEnv = typeof window === 'undefined',
+  online$ = isNodeEnv ? of(true) : fromEvent(window, 'online'),
+  offline$ = isNodeEnv ? of(false) : fromEvent(window, 'offline'),
+  initialStatus = isNodeEnv ? true : navigator.onLine
 }: ConnectionStatusTrackerInternals = {}): ConnectionStatusTracker => {
-  if (isNodeEnv()) {
+  if (isNodeEnv) {
     return new BehaviorSubject(ConnectionStatus.up).asObservable();
   }
 
-  return merge(online$(), offline$()).pipe(
-    map(() => isOnline()),
-    startWith(isOnline()),
+  return merge(online$.pipe(map(() => true)), offline$.pipe(map(() => false))).pipe(
+    startWith(initialStatus),
     map((onLine) => (onLine ? ConnectionStatus.up : ConnectionStatus.down)),
     distinctUntilChanged(),
     shareReplay(1)
