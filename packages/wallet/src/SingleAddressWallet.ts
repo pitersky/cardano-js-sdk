@@ -13,16 +13,7 @@ import {
   UtxoProvider,
   coreToCsl
 } from '@cardano-sdk/core';
-import {
-  Assets,
-  InitializeTxProps,
-  InitializeTxResult,
-  InitializeVotingTxProps,
-  InitializeVotingTxResult,
-  ObservableWallet,
-  SignDataProps,
-  SyncStatus
-} from './types';
+import { Assets, InitializeTxProps, InitializeTxResult, ObservableWallet, SignDataProps, SyncStatus } from './types';
 import {
   BalanceTracker,
   DelegationTracker,
@@ -74,7 +65,7 @@ import {
   tap
 } from 'rxjs';
 import { TrackedUtxoProvider } from './services/ProviderTracker/TrackedUtxoProvider';
-import { TxInternals, createTransactionInternals, createVotingAuxData, ensureValidityInterval } from './Transaction';
+import { TxInternals, createTransactionInternals, ensureValidityInterval } from './Transaction';
 import { WalletStores, createInMemoryWalletStores } from './persistence';
 import { cip30signData } from './KeyManagement/cip8';
 import isEqual from 'lodash/isEqual';
@@ -279,32 +270,6 @@ export class SingleAddressWallet implements ObservableWallet {
 
   async getName(): Promise<string> {
     return this.name;
-  }
-
-  async initializeVotingRegistrationTx(props: InitializeVotingTxProps): Promise<InitializeVotingTxResult> {
-    const ownAddress = (await firstValueFrom(this.addresses$))[0].address;
-    const rewardAccount = (await firstValueFrom(this.addresses$))[0].rewardAccount;
-    const auxiliaryData = await createVotingAuxData({
-      keyAgent: this.keyAgent,
-      nonce: props.nonce,
-      rewardAccount,
-      votingPublicKey: props.votingPublicKey
-    });
-
-    // Set min output amount to perform voting registration transaction. Coins will be sent to wallet (owner) address
-    const outputs = new Set([
-      {
-        address: ownAddress,
-        value: { coins: 1_000_000n }
-      }
-    ]);
-
-    const txInternals = await this.initializeTx({
-      auxiliaryData,
-      outputs
-    });
-
-    return { auxiliaryData, txInternals };
   }
 
   async initializeTx(props: InitializeTxProps): Promise<InitializeTxResult> {

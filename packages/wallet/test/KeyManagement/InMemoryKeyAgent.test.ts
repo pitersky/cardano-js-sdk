@@ -99,18 +99,6 @@ describe('InMemoryKeyAgent', () => {
     expect(typeof signature).toBe('string');
   });
 
-  test('signVotingMetadata', async () => {
-    const signature = await keyAgent.signVotingMetadata({
-      nonce: 1_234_567,
-      publicStakeKey: '0xf8f734461c7e8c9582bfda6ed821b26fc0e56f36cd35d3de6e7aae2d902abdc5',
-      rewardAccountKey: '0x4368a2bb9f54cbe0ac6f46e0b15359a76e61b5f221a493b15ba2d99d',
-      votingPublicKey:
-        // eslint-disable-next-line max-len
-        '0x94ee103ffe8943fe124fb5a6d99f91e41248dafa62fa614013071481d431bd66b748ef68a6c5a713173fb5190b51e7b64e2af8646386d56ef6ebf9f753575352'
-    });
-    expect(typeof signature).toBe('string');
-  });
-
   test('signTransaction', async () => {
     ownSignatureKeyPaths.mockReturnValueOnce([
       { index: 0, role: 0 },

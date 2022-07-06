@@ -287,10 +287,6 @@ export class LedgerKeyAgent extends KeyAgentBase {
     throw new NotImplementedError('Operation not supported!');
   }
 
-  async signVotingMetadata(): Promise<Cardano.Ed25519Signature> {
-    throw new NotImplementedError('signVotingMetadata');
-  }
-
   async squashAccount(): Promise<KeyAgent> {
     throw new NotImplementedError('squashAccount');
   }

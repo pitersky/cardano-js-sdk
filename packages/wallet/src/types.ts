@@ -18,11 +18,6 @@ export type InitializeTxProps = {
   };
 };
 
-export interface InitializeVotingTxProps {
-  votingPublicKey: Cardano.Bip32PublicKey;
-  nonce: number;
-}
-
 export interface FinalizeTxProps {
   readonly body: Cardano.TxBodyAlonzo;
 }
@@ -41,11 +36,6 @@ export interface InitializeTxPropsValidationResult {
 }
 
 export type InitializeTxResult = TxInternals & { inputSelection: SelectionSkeleton };
-
-export type InitializeVotingTxResult = {
-  txInternals: InitializeTxResult;
-  auxiliaryData: Cardano.AuxiliaryData;
-};
 
 export type SignDataProps = Omit<Cip30SignDataRequest, 'keyAgent'>;
 

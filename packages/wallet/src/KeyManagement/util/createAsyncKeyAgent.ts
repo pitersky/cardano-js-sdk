@@ -18,7 +18,6 @@ export const createAsyncKeyAgent = (keyAgent: KeyAgent): AsyncKeyAgent => {
       knownAddresses$.complete();
     },
     signBlob: keyAgent.signBlob.bind(keyAgent),
-    signTransaction: keyAgent.signTransaction.bind(keyAgent),
-    signVotingMetadata: keyAgent.signVotingMetadata.bind(keyAgent)
+    signTransaction: keyAgent.signTransaction.bind(keyAgent)
   };
 };

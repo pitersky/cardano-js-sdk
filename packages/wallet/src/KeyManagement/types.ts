@@ -148,13 +148,6 @@ export interface SignTransactionOptions {
   additionalKeyPaths?: AccountKeyDerivationPath[];
 }
 
-export interface SignVotingMetadataProps {
-  votingPublicKey: string;
-  publicStakeKey: string;
-  rewardAccountKey: string;
-  nonce: number;
-}
-
 export interface DeriveAccountPrivateKeyProps {
   rootPrivateKey: CSL.Bip32PrivateKey;
   accountIndex: number;
@@ -194,20 +187,8 @@ export interface KeyAgent {
    * @throws AuthenticationError
    */
   exportRootPrivateKey(): Promise<Cardano.Bip32PrivateKey>;
-  /**
-   * @throws AuthenticationError
-   */
-  signVotingMetadata(props: SignVotingMetadataProps): Promise<Cardano.Ed25519Signature>;
 }
 
-export type AsyncKeyAgent = Pick<
-  KeyAgent,
-  'deriveAddress' | 'derivePublicKey' | 'signBlob' | 'signTransaction' | 'signVotingMetadata'
-> & {
+export type AsyncKeyAgent = Pick<KeyAgent, 'deriveAddress' | 'derivePublicKey' | 'signBlob' | 'signTransaction'> & {
   knownAddresses$: Observable<GroupedAddress[]>;
 } & Shutdown;
-
-export interface VotingKeyPair {
-  prvKey: Cardano.Bip32PrivateKey;
-  pubKey: Cardano.Bip32PublicKey;
-}
