@@ -26,7 +26,7 @@ import http from 'http';
 
 jest.mock('dns', () => ({
   promises: {
-    resolveSrv: async (): Promise<SrvRecord[]> => [{ name: 'testnet', port: 5432, priority: 6, weight: 5 }]
+    resolveSrv: async (): Promise<SrvRecord[]> => [{ name: 'localhost', port: 5433, priority: 6, weight: 5 }]
   }
 }));
 

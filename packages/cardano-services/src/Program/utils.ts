@@ -23,18 +23,23 @@ export type RetryBackoffConfig = {
 };
 
 export const onFailedAttemptFor =
-  (operation: string, logger: Logger) =>
+  (serviceName: string, cache: InMemoryCache, logger: Logger) =>
   async ({ attemptNumber, message, retriesLeft }: FailedAttemptError) => {
+    cache.invalidate(`${DNS_SRV_ADDRESS_CACHE_KEY}/${serviceName}`);
+
     const nextAction = retriesLeft > 0 ? 'retrying...' : 'exiting';
     logger.trace(message);
-    logger.debug(`${operation}: Attempt ${attemptNumber} of ${attemptNumber + retriesLeft}, ${nextAction}`);
+    logger.debug(
+      `Establishing connection to ${serviceName}: Attempt ${attemptNumber} of ${
+        attemptNumber - 1 + retriesLeft
+      }, ${nextAction}`
+    );
     if (retriesLeft === 0) {
       logger.error(message);
       // Invokes onDeath() callback within cardano-services entrypoints, following by server.shutdown() and process.exit(1)
       process.kill(process.pid, 'SIGTERM');
     }
   };
-
 export const getRandomAddressWithDnsSrv = async (serviceName: string) => {
   const [address] = await dns.promises.resolveSrv(serviceName);
   return address;
@@ -53,7 +58,7 @@ export const getDnsSrvResolveWithExponentialBackoff =
       {
         factor: config.factor,
         maxRetryTime: config.maxRetryTime,
-        onFailedAttempt: onFailedAttemptFor(`Establishing connection to ${serviceName}`, logger)
+        onFailedAttempt: onFailedAttemptFor(serviceName, cache, logger)
       }
     );
 
