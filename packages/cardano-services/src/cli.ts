@@ -122,7 +122,7 @@ commonOptions(
   .option('--ogmios-srv-service-name <ogmiosSrvServiceName>', ProgramOptionDescriptions.OgmiosSrvServiceName)
   .option('--postgres-srv-service-name <postgresSrvServiceName>', ProgramOptionDescriptions.PostgresSrvServiceName)
   .option('--postgres-name <postgresName>', ProgramOptionDescriptions.DbConnection)
-  .option('--postgres-uid <postgresUser>', ProgramOptionDescriptions.DbConnection)
+  .option('--postgres-user <postgresUser>', ProgramOptionDescriptions.DbConnection)
   .option('--postgres-password <postgresPassword>', ProgramOptionDescriptions.DbConnection)
   .action(async (serviceNames: ServiceNames[], options: { apiUrl: URL } & HttpServerOptions) => {
     const { apiUrl, ...rest } = options;
