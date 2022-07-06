@@ -11,6 +11,12 @@ import axios from 'axios';
 import http from 'http';
 import path from 'path';
 
+// jest.mock('dns', () => ({
+//   promises: {
+//     resolveSrv: async () => [{ name: '127.0.0.1', port: 5433, priority: 6, weight: 5 }]
+//   }
+// }));
+
 const exePath = (name: 'cli' | 'run') => path.join(__dirname, '..', 'dist', 'cjs', `${name}.js`);
 
 const assertServiceHealthy = async (apiUrl: string, serviceName: ServiceNames) => {
@@ -402,6 +408,27 @@ describe('entrypoints', () => {
             '--use-queue',
             '--rabbitmq-url',
             RABBITMQ_URL_DEFAULT,
+            ServiceNames.TxSubmit
+          ],
+          {
+            stdio: 'pipe'
+          }
+        );
+        await assertServiceHealthy(apiUrl, ServiceNames.TxSubmit);
+      });
+
+      it('cli:start-server with SRV service name', async () => {
+        proc = fork(
+          exePath('cli'),
+          [
+            'start-server',
+            '--api-url',
+            apiUrl,
+            '--logger-min-severity',
+            'error',
+            '--use-queue',
+            '--rabbitmq-srv-service-name',
+            'localhost',
             ServiceNames.TxSubmit
           ],
           {
