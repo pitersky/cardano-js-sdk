@@ -5,10 +5,10 @@ import { HttpServerOptions } from './loadHttpServer';
 import { InMemoryCache, UNLIMITED_CACHE_TTL } from '../InMemoryCache';
 import { InvalidArgsCombination, MissingProgramOption } from './errors';
 import { ProgramOptionDescriptions } from './ProgramOptionDescriptions';
+import { ProviderError, ProviderFailure, TxSubmitProvider } from '@cardano-sdk/core';
 import { RabbitMqTxSubmitProvider } from '@cardano-sdk/rabbitmq';
 import { ServiceNames } from './ServiceNames';
-import { TxSubmitProvider } from '@cardano-sdk/core';
-import { ogmiosTxSubmitProvider, urlToConnectionConfig } from '@cardano-sdk/ogmios';
+import { WebSocketClosed, ogmiosTxSubmitProvider, urlToConnectionConfig } from '@cardano-sdk/ogmios';
 import Logger from 'bunyan';
 import dns, { SrvRecord } from 'dns';
 import pRetry, { FailedAttemptError } from 'p-retry';
@@ -143,7 +143,7 @@ export const getSrvOgmiosTxSubmitProvider = async (
       if (prop === 'submitTx') {
         return (args: Uint8Array) =>
           ogmiosProvider.submitTx(args).catch(async (error) => {
-            if (error.code && ['ENOTFOUND', 'ECONNREFUSED'].includes(error.code)) {
+            if (error instanceof WebSocketClosed && error.message === 'WebSocket is closed') {
               const address = await dnsSrvResolve(serviceName!);
               ogmiosProvider = ogmiosTxSubmitProvider(address);
               return await ogmiosProvider.submitTx(args);
@@ -203,7 +203,7 @@ export const getSrvRabbitMqTxSubmitProvider = async (
       if (prop === 'submitTx') {
         return (args: Uint8Array) =>
           rabbitmqProvider.submitTx(args).catch(async (error) => {
-            if (error.code && ['ENOTFOUND', 'ECONNREFUSED'].includes(error.code)) {
+            if (error instanceof ProviderError && error.innerError === ProviderFailure.ConnectionFailure) {
               const address = await dnsSrvResolve(serviceName!);
               rabbitmqProvider = new RabbitMqTxSubmitProvider({ rabbitmqUrl: srvAddressToRabbitmqURL(address) });
               return await rabbitmqProvider.submitTx(args);
