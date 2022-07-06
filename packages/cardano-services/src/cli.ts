@@ -21,10 +21,7 @@ import {
   TxWorkerOptions,
   loadTxWorker
 } from './TxWorker';
-import {
-  SERVICE_DISCOVERY_BACKOFF_FACTOR_DEFAULT,
-  SERVICE_DISCOVERY_BACKOFF_MAX_TIMEOUT_DEFAULT
-} from './Program/utils';
+import { SERVICE_DISCOVERY_BACKOFF_FACTOR_DEFAULT, SERVICE_DISCOVERY_BACKOFF_TIMEOUT_DEFAULT } from './Program/utils';
 import { URL } from 'url';
 import { cacheTtlValidator } from './util/validators';
 import { loggerMethodNames } from './util';
@@ -115,7 +112,7 @@ commonOptions(
     '--service-discovery-timeout <serviceDiscoveryTimeout>',
     ProgramOptionDescriptions.ServiceDiscoverBackoffTimeout,
     (interval) => Number.parseInt(interval, 10),
-    SERVICE_DISCOVERY_BACKOFF_MAX_TIMEOUT_DEFAULT
+    SERVICE_DISCOVERY_BACKOFF_TIMEOUT_DEFAULT
   )
   .option('--use-queue', ProgramOptionDescriptions.UseQueue, () => true, USE_QUEUE_DEFAULT)
   .option('--rabbitmq-srv-service-name <rabbitmqSrvServiceName>', ProgramOptionDescriptions.RabbitMQSrvServiceName)

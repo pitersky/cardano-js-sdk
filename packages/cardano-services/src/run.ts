@@ -5,7 +5,7 @@ import {
   OGMIOS_URL_DEFAULT,
   RABBITMQ_URL_DEFAULT,
   SERVICE_DISCOVERY_BACKOFF_FACTOR_DEFAULT,
-  SERVICE_DISCOVERY_BACKOFF_MAX_TIMEOUT_DEFAULT,
+  SERVICE_DISCOVERY_BACKOFF_TIMEOUT_DEFAULT,
   ServiceNames,
   loadHttpServer
 } from './Program';
@@ -35,7 +35,7 @@ const envSpecs = {
   RABBITMQ_SRV_SERVICE_NAME: envalid.str({ default: undefined }),
   RABBITMQ_URL: envalid.url({ default: RABBITMQ_URL_DEFAULT }),
   SERVICE_DISCOVERY_BACKOFF_FACTOR: envalid.num({ default: SERVICE_DISCOVERY_BACKOFF_FACTOR_DEFAULT }),
-  SERVICE_DISCOVERY_BACKOFF_MAX_TIMEOUT: envalid.num({ default: SERVICE_DISCOVERY_BACKOFF_MAX_TIMEOUT_DEFAULT }),
+  SERVICE_DISCOVERY_BACKOFF_TIMEOUT: envalid.num({ default: SERVICE_DISCOVERY_BACKOFF_TIMEOUT_DEFAULT }),
   SERVICE_NAMES: envalid.str({ example: Object.values(ServiceNames).toString() }),
   USE_QUEUE: envalid.bool({ default: USE_QUEUE_DEFAULT })
 };
@@ -53,7 +53,7 @@ void (async () => {
   const dbPollInterval = env.DB_POLL_INTERVAL;
   const dbConnectionString = env.DB_CONNECTION_STRING ? new URL(env.DB_CONNECTION_STRING).toString() : undefined;
   const serviceDiscoveryBackoffFactor = env.SERVICE_DISCOVERY_BACKOFF_FACTOR;
-  const serviceDiscoveryTimeout = env.SERVICE_DISCOVERY_BACKOFF_MAX_TIMEOUT;
+  const serviceDiscoveryTimeout = env.SERVICE_DISCOVERY_BACKOFF_TIMEOUT;
   const postgresSrvServiceName = env.POSTGRES_SRV_SERVICE_NAME;
   const postgresName = env.POSTGRES_NAME;
   const postgresUser = env.POSTGRES_USER;

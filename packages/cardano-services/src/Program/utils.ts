@@ -14,7 +14,7 @@ import dns, { SrvRecord } from 'dns';
 import pRetry, { FailedAttemptError } from 'p-retry';
 
 export const SERVICE_DISCOVERY_BACKOFF_FACTOR_DEFAULT = 1.1;
-export const SERVICE_DISCOVERY_BACKOFF_MAX_TIMEOUT_DEFAULT = 60 * 1000;
+export const SERVICE_DISCOVERY_BACKOFF_TIMEOUT_DEFAULT = 60 * 1000;
 export const DNS_SRV_ADDRESS_CACHE_KEY = 'dns_srv_address_resolution';
 
 export type RetryBackoffConfig = {

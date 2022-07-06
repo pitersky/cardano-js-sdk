@@ -7,7 +7,7 @@ import {
   InvalidArgsCombination,
   MissingProgramOption,
   SERVICE_DISCOVERY_BACKOFF_FACTOR_DEFAULT,
-  SERVICE_DISCOVERY_BACKOFF_MAX_TIMEOUT_DEFAULT,
+  SERVICE_DISCOVERY_BACKOFF_TIMEOUT_DEFAULT,
   ServiceNames,
   loadHttpServer
 } from '../../src/Program';
@@ -62,7 +62,7 @@ describe('loadHttpServer', () => {
     dbQueriesCacheTtl = CACHE_TTL_DEFAULT;
     dbPollInterval = DB_POLL_INTERVAL_DEFAULT;
     serviceDiscoveryBackoffFactor = SERVICE_DISCOVERY_BACKOFF_FACTOR_DEFAULT;
-    serviceDiscoveryTimeout = SERVICE_DISCOVERY_BACKOFF_MAX_TIMEOUT_DEFAULT;
+    serviceDiscoveryTimeout = SERVICE_DISCOVERY_BACKOFF_TIMEOUT_DEFAULT;
     rabbitmqUrl = new URL(process.env.RABBITMQ_URL!);
     rabbitmqSrvServiceName = process.env.RABBITMQ_SRV_SERVICE_NAME!;
   });
